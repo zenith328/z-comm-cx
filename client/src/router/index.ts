@@ -4,7 +4,7 @@ import { session } from '../stores/session'
 const router = createRouter({
   history: createWebHistory(),
   routes: [
-    { path: '/', redirect: '/admin/products' },
+    { path: '/', redirect: '/admin/guide' },
     { path: '/login', name: 'login', component: () => import('../views/LoginView.vue') },
     {
       path: '/products',
@@ -42,7 +42,8 @@ const router = createRouter({
       component: () => import('../views/CustomerChatView.vue'),
       meta: { requiresAuth: true },
     },
-    { path: '/admin', redirect: '/admin/products' },
+    { path: '/admin', redirect: '/admin/guide' },
+    { path: '/admin/guide', name: 'admin-guide', component: () => import('../views/AdminGuideView.vue') },
     { path: '/admin/products', name: 'admin-products', component: () => import('../views/AdminProductView.vue') },
     { path: '/admin/reviews', name: 'admin-reviews', component: () => import('../views/AdminReviewView.vue') },
     { path: '/admin/orders', name: 'admin-orders', component: () => import('../views/AdminOrderView.vue') },

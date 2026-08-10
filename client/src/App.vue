@@ -27,7 +27,7 @@ async function handleGoogleCredential(idToken: string) {
   siteLoginError.value = ''
   try {
     await loginSiteWithGoogle(idToken)
-    router.push('/admin/products')
+    router.push('/admin/guide')
   } catch (error: any) {
     siteLoginError.value =
       error?.response?.status === 403
@@ -80,7 +80,7 @@ function handleLoginLayerSubmit(payload: { name: string; phone: string }) {
 
 function handleLoginLayerCancel() {
   loginLayerOpen.value = false
-  router.push('/admin/products')
+  router.push('/admin/guide')
 }
 </script>
 
@@ -111,7 +111,7 @@ function handleLoginLayerCancel() {
     <template v-if="!isLoginPage">
       <nav class="top-tabs">
         <a href="#" class="top-tab" :class="{ active: activeGroup === 'customer' }" @click.prevent="goCustomer">고객화면</a>
-        <RouterLink to="/admin/products" class="top-tab" :class="{ active: activeGroup === 'admin' }">운영자어드민</RouterLink>
+        <RouterLink to="/admin/guide" class="top-tab" :class="{ active: activeGroup === 'admin' }">운영자어드민</RouterLink>
       </nav>
 
       <nav class="sub-tabs">
@@ -134,6 +134,7 @@ function handleLoginLayerCancel() {
           </div>
         </template>
         <template v-else>
+          <RouterLink to="/admin/guide" active-class="active">사용법</RouterLink>
           <RouterLink to="/admin/products" active-class="active">상품관리</RouterLink>
           <RouterLink to="/admin/reviews" active-class="active">리뷰관리</RouterLink>
           <RouterLink to="/admin/orders" active-class="active">주문관리</RouterLink>
