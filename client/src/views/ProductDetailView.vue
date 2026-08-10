@@ -70,10 +70,7 @@ onUnmounted(() => setBreadcrumbProductName(null))
           <h2>{{ product.name }}</h2>
           <p class="price">{{ formatPrice(product.price) }}</p>
           <p class="registered-at">등록일 {{ formatDate(product.createdAt) }}</p>
-          <p v-if="product.stockQuantity != null" class="stock">
-            <span>재고 {{ product.stockQuantity }}개</span>
-            <span>주문가능 {{ outOfStock ? '품절' : `${product.availableQuantity}개` }}</span>
-          </p>
+          <p v-if="outOfStock" class="stock-out">품절</p>
 
           <div class="actions">
             <div class="order-box">
@@ -150,11 +147,15 @@ onUnmounted(() => setBreadcrumbProductName(null))
   font-size: 12px;
   color: #999;
 }
-.stock {
-  display: flex;
-  gap: 16px;
-  color: #555;
+.stock-out {
+  display: inline-block;
+  width: fit-content;
+  padding: 3px 10px;
+  border-radius: 4px;
+  background: #fde2e2;
+  color: #a80000;
   font-size: 13px;
+  font-weight: 600;
   margin: 0 0 16px;
 }
 .actions {
