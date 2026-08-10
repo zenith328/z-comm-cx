@@ -1,5 +1,5 @@
 server:
-  port: 8080
+  port: ${PORT:8080}
 
 spring:
   application:
@@ -7,10 +7,10 @@ spring:
   profiles:
     default: local
   datasource:
-    url: jdbc:postgresql://localhost:5432/zcommcx
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/zcommcx}
     driver-class-name: org.postgresql.Driver
-    username: zcommcx_app
-    password: zcommcx_app
+    username: ${SPRING_DATASOURCE_USERNAME:zcommcx_app}
+    password: ${SPRING_DATASOURCE_PASSWORD:zcommcx_app}
   jpa:
     hibernate:
       ddl-auto: update
