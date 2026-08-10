@@ -1,5 +1,7 @@
 # Zenith Commerce CX (z-comm-cx)
 
+배포: **https://z-comm-cx.onrender.com** (Render + Supabase, 자세한 내용은 [배포](#배포-프로덕션) 참고)
+
 `ai-review-management`(AI 리뷰 매니지먼트)와 `ai-cs-auto-resolver`(AI CS 자동 해결 트랜잭션 에이전트)
 두 조별과제를 하나의 커머스 고객경험(CX) 플랫폼으로 통합한 프로젝트. 상품을 등록하면 고객이 그
 상품에 리뷰를 남기고, 주문하고, 주문 관련 CS를 AI와 채팅으로 처리할 수 있다. 두 원본 프로젝트는
@@ -51,7 +53,7 @@
 
 ### 로그인 — 2단계
 
-외부에서 접속 가능하게 배포할 계획이라, 로그인을 목적이 다른 두 단계로 나눴다.
+외부에서 접속 가능하게 배포했기 때문에, 로그인을 목적이 다른 두 단계로 나눴다.
 
 1. **사이트 로그인 (`com.zcommcx.auth` 패키지)** — Google 계정으로 로그인해야 사이트 전체
    (운영자어드민 + 고객화면 FO)에 들어올 수 있다. "이 배포 인스턴스에 들어올 자격이 있는가"를
@@ -106,7 +108,8 @@ gemini:
 2. "API 및 서비스 → OAuth 동의 화면" 설정 (외부/테스트 사용자로 시작 가능)
 3. "API 및 서비스 → 사용자 인증 정보 → OAuth 클라이언트 ID 만들기" → 애플리케이션 유형
    **웹 애플리케이션**
-4. **승인된 JavaScript 원본**에 `http://localhost:15173` 추가 (배포 시 실제 도메인도 추가)
+4. **승인된 JavaScript 원본**에 `http://localhost:15173` 추가 (배포 도메인도 끝에 `/` 없이
+   추가 — 예: `https://z-comm-cx.onrender.com`)
 5. 생성된 클라이언트 ID(비밀키 아님, `...apps.googleusercontent.com`)를
    `application-local.yml`의 `google.client-id`에 넣는다:
    ```yaml
@@ -126,7 +129,8 @@ gemini:
 
 클라이언트 ID를 넣지 않으면 로그인 화면에 "GOOGLE_CLIENT_ID가 설정되지 않았습니다" 안내가 뜬다.
 허용 목록에 없는 이메일로 로그인하면 백엔드가 403을 반환하고 프론트에 "허용되지 않은 계정입니다"
-메시지가 뜬다.
+메시지가 뜬다. (배포 환경 DB에 등록하려면 `psql` 대신 Supabase 대시보드의 SQL Editor에서
+같은 INSERT문을 실행하면 된다 — [배포](#배포-프로덕션) 참고)
 
 ## 실행 방법
 
@@ -143,6 +147,70 @@ psql -d zcommcx -c "GRANT ALL ON SCHEMA public TO zcommcx_app;"
 # 프론트 (15173, /api 요청은 8080으로 proxy)
 cd client && pnpm install && pnpm dev
 ```
+
+## 배포 (프로덕션)
+
+**https://z-comm-cx.onrender.com** — `main` 브랜치에 push하면 Render가 자동으로 재빌드/재배포한다.
+
+| 구성요소 | 서비스 | 비고 |
+|---|---|---|
+| 코드 저장소 | GitHub | main 브랜치 push → Render 자동 재배포 트리거 |
+| 백엔드 + 프론트엔드 | Render (Web Service, Docker) | 무료 플랜 — **15분간 요청 없으면 슬립**, 다음 요청 때 깨어나는 데 ~1분 걸림 |
+| DB | Supabase (Postgres) | 무료 플랜 — **7일간 요청 없으면 자동 일시정지**, Supabase 대시보드에서 수동으로 "Restore" 필요 |
+
+월 비용 $0. 위 표의 슬립/일시정지는 무료 플랜의 정상 동작이라 데모·포트폴리오 용도로는 충분하지만,
+꾸준한 트래픽이 필요해지면 유료 플랜(Render Starter, Supabase Pro 등) 전환을 고려한다.
+
+### 배포 방식 — 프론트+백엔드를 하나로
+
+로컬 개발은 지금처럼 `bootRun`(8080)과 Vite dev server(15173)를 따로 띄우지만, 배포 시에는
+`Dockerfile`이 프론트엔드를 Spring Boot 정적 리소스로 함께 패키징해 **서비스 하나, URL 하나**로
+묶는다.
+
+1. `frontend-build` 스테이지: Node 이미지에서 `client/`를 빌드(`pnpm build`) → `client/dist` 생성
+2. `backend-build` 스테이지: `client/dist`를 `src/main/resources/static`으로 복사한 뒤
+   `./gradlew bootJar`로 빌드 (산출물 이름은 `app.jar`로 고정하고 plain jar는 비활성화 —
+   `build.gradle.kts` 참고. 안 그러면 `build/libs/`에 jar가 2개 생겨 Dockerfile의 복사 경로가
+   모호해진다)
+3. 최종 런타임 이미지: JRE 위에서 `app.jar` 실행
+
+Vue Router가 history 모드라 `/products/1`처럼 실제 정적 파일이 없는 클라이언트 라우트에 직접
+접근하면 Spring의 기본 정적 리소스 핸들러는 404를 반환한다 — `SpaWebConfig`
+(`com.zcommcx.config`)가 요청한 파일이 없을 때 `index.html`로 대신 응답해 Vue Router가
+라우팅을 이어받게 한다. `/api/**`는 `SiteAuthFilter`가 그보다 먼저 처리하므로 이 폴백과
+겹치지 않는다.
+
+### 환경변수 (Render)
+
+로컬은 `application.yml`의 기본값(`localhost` DB 등)을 그대로 쓰고, 배포 환경에서만 아래
+환경변수로 오버라이드한다.
+
+| 변수 | 값 |
+|---|---|
+| `SPRING_DATASOURCE_URL` | `jdbc:postgresql://<host>:5432/postgres` — Supabase **Session pooler** 접속 정보 |
+| `SPRING_DATASOURCE_USERNAME` | Session pooler의 `postgres.<project-ref>` |
+| `SPRING_DATASOURCE_PASSWORD` | Supabase 프로젝트 생성 시 설정한 DB 비밀번호 |
+| `GEMINI_API_KEY` | 로컬 `application-local.yml`과 동일한 값 |
+| `GOOGLE_CLIENT_ID` | 로컬 `application-local.yml`과 동일한 값 |
+| `PORT` | Render가 자동으로 주입 (직접 설정 불필요, `server.port: ${PORT:8080}`) |
+
+### 배포 후에만 추가로 해야 하는 것
+
+- **Google Cloud Console** OAuth 클라이언트의 "승인된 JavaScript 원본"에 배포 도메인 추가
+  (위 "Google 로그인 설정" 참고).
+- **로그인 허용 이메일**: 로컬처럼 `psql` 대신 Supabase 대시보드의 **SQL Editor**에서
+  `allowed_google_account`에 INSERT (문법은 위 "Google 로그인 설정" 섹션과 동일).
+
+### 배포하면서 겪은 함정
+
+- **pnpm 버전 고정 필요**: `client/package.json`에 `packageManager` 필드로 pnpm 버전을
+  고정해뒀다. 없으면 Render의 Docker 빌드 환경이 로컬과 다른 pnpm 버전을 받아오면서
+  `pnpm-lock.yaml`(v9 포맷)과 안 맞아 `pnpm install --frozen-lockfile`이 실패한다.
+- **Supabase Direct connection은 Render에서 안 통함**: Supabase의 Direct connection
+  (`db.<project-ref>.supabase.co`)은 기본이 IPv6 전용이라, IPv4만 지원하는 Render 같은
+  플랫폼에서는 연결 자체가 안 된다. 반드시 **Session pooler** 접속 정보(호스트가
+  `aws-0-<region>.pooler.supabase.com` 형태, 유저명이 `postgres.<project-ref>` 형태)를
+  써야 한다.
 
 ## API
 
@@ -209,8 +277,8 @@ Vue 3 + Vite + `vue-router` SPA. 로그인 여부는 라우트 가드(`requiresA
 
 ## 알려진 한계 / 다음 단계
 
-- "외부에서 접속 가능하게" 하는 배포(도메인/HTTPS/클라우드 호스팅)는 이번 통합 범위에 넣지
-  않았다 — 로컬 완성 후 별도로 진행한다.
+- 무료 플랜으로 배포해서 Render는 15분 무요청 시 슬립, Supabase는 7일 무요청 시 일시정지된다
+  (자세한 내용은 [배포](#배포-프로덕션) 참고) — 꾸준한 트래픽이 필요해지면 유료 플랜 전환 필요.
 - 리뷰 쪽 Gemini 클라이언트와 CS 쪽 Gemini 클라이언트는 아직 분리되어 있다 (위 아키텍처 설명
   참고). 공통 저수준 HTTP 클라이언트로 합치는 건 후속 개선 과제.
 - CS 채팅 세션 히스토리는 메모리에만 보관된다 (서버 재시작 시 초기화) — `ai-cs-auto-resolver`
