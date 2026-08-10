@@ -69,8 +69,8 @@
      `email` 컬럼에는 전체 이메일(`zenith@g1project.net`)이나 `@도메인` 형태(`@g1project.net`,
      해당 도메인 전체 허용)를 둘 다 넣을 수 있다 — 정확히 일치하는 이메일을 먼저 확인하고,
      없으면 `@도메인` 항목이 있는지 확인한다 (`SiteAuthService#isAllowed`).
-   - 로그인 성공 시 프론트가 항상 `/admin/products`로 이동한다 (`App.vue#handleGoogleCredential`)
-     — 이전에 어떤 화면을 보고 있었든 상관없이 사이트 로그인 직후 첫 화면은 관리자 상품관리다.
+   - 로그인 성공 시 프론트가 항상 `/admin/guide`로 이동한다 (`App.vue#handleGoogleCredential`)
+     — 이전에 어떤 화면을 보고 있었든 상관없이 사이트 로그인 직후 첫 화면은 사용법 안내다.
    - "사이트 로그아웃" 버튼을 누르면 사이트 세션뿐 아니라 FO 회원 로그인(`stores/session.ts`)도
      함께 로그아웃된다 (`App.vue#handleSiteLogout`) — 같은 브라우저를 다음 사람이 쓸 때 이전
      회원 세션이 남아있지 않도록.
@@ -262,13 +262,14 @@ curl http://localhost:8080/api/guardrail
 Vue 3 + Vite + `vue-router` SPA. 로그인 여부는 라우트 가드(`requiresAuth`)로 제어한다.
 
 ```
-/                          → /admin/products로 리다이렉트 (사이트 로그인 직후 첫 화면)
+/                          → /admin/guide로 리다이렉트 (사이트 로그인 직후 첫 화면)
 /login
 /products                  고객 상품목록 (브랜드필터/정렬)
 /products/:id              상품상세 — 리뷰(AI요약/베스트리뷰/목록) + 주문하기
 /products/:id/review       리뷰 작성 (로그인 필요, 작성자는 로그인 이름 자동 사용)
 /orders, /orders/new       주문목록 / 주문서 작성
 /chat                      CS 채팅
+/admin/guide               사용법 안내 (통합된 과제별 고객화면/운영자화면 사용법 정리)
 /admin/products            상품관리 (등록 + 목록 + 재고 입고/품절)
 /admin/reviews              리뷰관리 (베스트 숏리스트 패널 포함)
 /admin/orders                주문관리
