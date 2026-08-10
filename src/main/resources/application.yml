@@ -1,0 +1,36 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: z-comm-cx
+  profiles:
+    default: local
+  datasource:
+    url: jdbc:postgresql://localhost:5432/zcommcx
+    driver-class-name: org.postgresql.Driver
+    username: zcommcx_app
+    password: zcommcx_app
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+
+gemini:
+  api-key: ${GEMINI_API_KEY:}
+  model: gemini-flash-latest
+  base-url: https://generativelanguage.googleapis.com/v1beta
+  max-reviews-per-summary: 30
+
+guardrail:
+  return-window-days: 7
+
+google:
+  client-id: ${GOOGLE_CLIENT_ID:}
+
+logging:
+  level:
+    com.zcommcx: DEBUG
