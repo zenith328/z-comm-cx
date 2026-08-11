@@ -17,6 +17,7 @@ const isLoginPage = computed(() => route.path === '/login')
 
 const googleClientId = ref('')
 const siteLoginError = ref('')
+const siteLoginLoading = ref(false)
 
 onMounted(async () => {
   const [config] = await Promise.all([fetchSiteAuthConfig(), checkSiteAuth()])
@@ -25,6 +26,7 @@ onMounted(async () => {
 
 async function handleGoogleCredential(idToken: string) {
   siteLoginError.value = ''
+  siteLoginLoading.value = true
   try {
     await loginSiteWithGoogle(idToken)
     router.push('/admin/guide')
@@ -33,6 +35,8 @@ async function handleGoogleCredential(idToken: string) {
       error?.response?.status === 403
         ? '허용되지 않은 계정입니다. 관리자에게 접근 권한을 요청해 주세요.'
         : '로그인에 실패했습니다. 다시 시도해 주세요.'
+  } finally {
+    siteLoginLoading.value = false
   }
 }
 
@@ -92,7 +96,13 @@ function handleLoginLayerCancel() {
   <main v-else-if="!siteAuth.email" class="page site-gate-page">
     <h1>Zenith Commerce CX</h1>
     <p class="site-gate-hint">이 사이트는 허용된 Google 계정으로만 접근할 수 있습니다.</p>
-    <GoogleSignInButton v-if="googleClientId" :client-id="googleClientId" @credential="handleGoogleCredential" />
+
+    <div v-if="siteLoginLoading" class="site-gate-loading">
+      <span class="spinner"></span>
+      <p>로그인 처리 중입니다...</p>
+      <p class="site-gate-loading-sub">서버가 잠들어 있었다면 깨어나는 데 최대 1분 정도 걸릴 수 있어요.</p>
+    </div>
+    <GoogleSignInButton v-else-if="googleClientId" :client-id="googleClientId" @credential="handleGoogleCredential" />
     <p v-else class="site-gate-error">
       GOOGLE_CLIENT_ID가 설정되지 않았습니다. application-local.yml의 google.client-id를 채워주세요.
     </p>
@@ -208,6 +218,35 @@ h1 {
 .site-gate-error {
   color: #a80000;
   font-size: 13px;
+}
+.site-gate-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.site-gate-loading p {
+  margin: 0;
+  font-size: 14px;
+  color: #444;
+}
+.site-gate-loading-sub {
+  font-size: 12px !important;
+  color: #999 !important;
+}
+.spinner {
+  width: 24px;
+  height: 24px;
+  border: 3px solid #e0e0e0;
+  border-top-color: #0056b3;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-bottom: 4px;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 .header-row {
   display: flex;
