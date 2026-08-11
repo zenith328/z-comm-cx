@@ -274,6 +274,8 @@ Vue 3 + Vite + `vue-router` SPA. 로그인 여부는 라우트 가드(`requiresA
 /admin/reviews              리뷰관리 (베스트 숏리스트 패널 포함)
 /admin/orders                주문관리
 /admin/tickets                CS 티켓관리
+/admin/system                시스템관리 (DB 용량 확인/정리 — 접었다 펼 수 있는 섹션 단위,
+                              앞으로 다른 시스템 관리 기능도 이 화면에 섹션으로 추가될 예정)
 ```
 
 ## 알려진 한계 / 다음 단계

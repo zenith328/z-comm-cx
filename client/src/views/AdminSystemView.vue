@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import '../styles/admin.css'
+import CollapsibleSection from '../components/CollapsibleSection.vue'
 import { clearSummaryCache, fetchDbUsage, purgeTicketTranscripts } from '../api/dbUsage'
 import type { DbUsageResponse } from '../api/dbUsage'
 import { formatBytes } from '../utils/format'
@@ -81,77 +82,81 @@ onMounted(load)
 
 <template>
   <section class="admin-page">
-    <h2 class="admin-title">DB 관리</h2>
+    <h2 class="admin-title">시스템관리</h2>
 
-    <p v-if="errorMessage" class="admin-error">{{ errorMessage }}</p>
-    <p v-else-if="loading && !usage">불러오는 중...</p>
+    <!-- 앞으로 이 화면에 다른 시스템 관리 기능이 추가되면, CollapsibleSection으로 감싸서
+         이 밑에 같은 방식으로 추가하면 된다. -->
+    <CollapsibleSection title="DB 관리 (Supabase 용량)">
+      <p v-if="errorMessage" class="admin-error">{{ errorMessage }}</p>
+      <p v-else-if="loading && !usage">불러오는 중...</p>
 
-    <template v-else-if="usage">
-      <section class="usage-box">
-        <div class="usage-header">
-          <h3>DB 사용량</h3>
-          <button type="button" @click="load" :disabled="loading">새로고침</button>
-        </div>
-        <div class="usage-bar-track">
-          <div class="usage-bar-fill" :class="usageTone" :style="{ width: `${usedPercent}%` }"></div>
-        </div>
-        <p class="usage-summary">
-          {{ formatBytes(usage.totalBytes) }} / {{ formatBytes(usage.limitBytes) }} 사용 중
-          ({{ usedPercent.toFixed(1) }}%)
-        </p>
-
-        <table class="admin-table">
-          <thead>
-            <tr>
-              <th>테이블</th>
-              <th>용량</th>
-              <th>행 수(추정)</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="table in usage.tables" :key="table.tableName">
-              <td>{{ table.tableName }}</td>
-              <td>{{ formatBytes(table.bytes) }}</td>
-              <td>{{ table.rowEstimate.toLocaleString() }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </section>
-
-      <section class="cleanup-box">
-        <h3>정리하기</h3>
-
-        <div class="cleanup-item">
-          <div class="cleanup-item-text">
-            <strong>AI 리뷰 요약 캐시 삭제</strong>
-            <p>언제든 다시 생성 가능한 캐시라 지워도 서비스에 영향이 없습니다. 다음 요청부터 AI를 다시 호출합니다.</p>
+      <template v-else-if="usage">
+        <section class="usage-box">
+          <div class="usage-header">
+            <h3>DB 사용량</h3>
+            <button type="button" @click="load" :disabled="loading">새로고침</button>
           </div>
-          <div class="cleanup-item-action">
-            <button type="button" :disabled="cacheClearing" @click="onClearSummaryCache">
-              {{ cacheClearing ? '삭제 중...' : '캐시 삭제' }}
-            </button>
-            <p v-if="cacheResultMessage" class="result-message">{{ cacheResultMessage }}</p>
+          <div class="usage-bar-track">
+            <div class="usage-bar-fill" :class="usageTone" :style="{ width: `${usedPercent}%` }"></div>
           </div>
-        </div>
+          <p class="usage-summary">
+            {{ formatBytes(usage.totalBytes) }} / {{ formatBytes(usage.limitBytes) }} 사용 중
+            ({{ usedPercent.toFixed(1) }}%)
+          </p>
 
-        <div class="cleanup-item">
-          <div class="cleanup-item-text">
-            <strong>오래된 CS 티켓 대화록 삭제</strong>
-            <p>처리완료(CLOSED)된 지 아래 일수가 지난 티켓의 원문 대화록만 지웁니다. 티켓 자체(요약/처리결과/일시)는 남습니다.</p>
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>테이블</th>
+                <th>용량</th>
+                <th>행 수(추정)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="table in usage.tables" :key="table.tableName">
+                <td>{{ table.tableName }}</td>
+                <td>{{ formatBytes(table.bytes) }}</td>
+                <td>{{ table.rowEstimate.toLocaleString() }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section class="cleanup-box">
+          <h3>정리하기</h3>
+
+          <div class="cleanup-item">
+            <div class="cleanup-item-text">
+              <strong>AI 리뷰 요약 캐시 삭제</strong>
+              <p>언제든 다시 생성 가능한 캐시라 지워도 서비스에 영향이 없습니다. 다음 요청부터 AI를 다시 호출합니다.</p>
+            </div>
+            <div class="cleanup-item-action">
+              <button type="button" :disabled="cacheClearing" @click="onClearSummaryCache">
+                {{ cacheClearing ? '삭제 중...' : '캐시 삭제' }}
+              </button>
+              <p v-if="cacheResultMessage" class="result-message">{{ cacheResultMessage }}</p>
+            </div>
           </div>
-          <div class="cleanup-item-action">
-            <label class="days-input">
-              <input v-model.number="olderThanDays" type="number" min="1" />
-              일 이전
-            </label>
-            <button type="button" :disabled="transcriptPurging" @click="onPurgeTranscripts">
-              {{ transcriptPurging ? '삭제 중...' : '대화록 삭제' }}
-            </button>
-            <p v-if="transcriptResultMessage" class="result-message">{{ transcriptResultMessage }}</p>
+
+          <div class="cleanup-item">
+            <div class="cleanup-item-text">
+              <strong>오래된 CS 티켓 대화록 삭제</strong>
+              <p>처리완료(CLOSED)된 지 아래 일수가 지난 티켓의 원문 대화록만 지웁니다. 티켓 자체(요약/처리결과/일시)는 남습니다.</p>
+            </div>
+            <div class="cleanup-item-action">
+              <label class="days-input">
+                <input v-model.number="olderThanDays" type="number" min="1" />
+                일 이전
+              </label>
+              <button type="button" :disabled="transcriptPurging" @click="onPurgeTranscripts">
+                {{ transcriptPurging ? '삭제 중...' : '대화록 삭제' }}
+              </button>
+              <p v-if="transcriptResultMessage" class="result-message">{{ transcriptResultMessage }}</p>
+            </div>
           </div>
-        </div>
-      </section>
-    </template>
+        </section>
+      </template>
+    </CollapsibleSection>
   </section>
 </template>
 
@@ -163,6 +168,10 @@ onMounted(load)
   padding: 16px 20px;
   margin-bottom: 20px;
   background: #fafafa;
+}
+.usage-box:last-child,
+.cleanup-box:last-child {
+  margin-bottom: 0;
 }
 .usage-header {
   display: flex;
