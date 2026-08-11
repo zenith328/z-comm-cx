@@ -1,4 +1,4 @@
-# Zenith Commerce CX (z-comm-cx)
+# Z Commerce CX (z-comm-cx)
 
 배포: **https://z-comm-cx.onrender.com** (Render + Supabase, 자세한 내용은 [배포](#배포-프로덕션) 참고)
 

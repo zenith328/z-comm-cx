@@ -94,7 +94,7 @@ function handleLoginLayerCancel() {
   </main>
 
   <main v-else-if="!siteAuth.email" class="page site-gate-page">
-    <h1>Zenith Commerce CX</h1>
+    <h1>Z Commerce CX</h1>
     <p class="site-gate-hint">이 사이트는 허용된 Google 계정으로만 접근할 수 있습니다.</p>
 
     <div v-if="siteLoginLoading" class="site-gate-loading">
@@ -111,7 +111,7 @@ function handleLoginLayerCancel() {
 
   <main v-else class="page">
     <div class="header-row">
-      <h1>Zenith Commerce CX</h1>
+      <h1>Z Commerce CX</h1>
       <div class="site-user-box">
         <span>{{ siteAuth.email }}</span>
         <button type="button" @click="handleSiteLogout">사이트 로그아웃</button>

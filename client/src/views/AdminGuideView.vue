@@ -69,7 +69,7 @@ const sections: GuideSection[] = [
 <template>
   <div class="guide-page">
     <section class="intro">
-      <h2>Zenith Commerce CX 사용법</h2>
+      <h2>Z Commerce CX 사용법</h2>
       <p>
         이 플랫폼은 서로 다른 조별과제들을 하나의 커머스 고객경험(CX) 플랫폼으로 통합해서 만들어지고
         있습니다. 아래에서 과제별로 고객화면·운영자화면 사용법을 확인하세요.
