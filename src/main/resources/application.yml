@@ -33,4 +33,4 @@ google:
 
 logging:
   level:
-    com.zcommcx: DEBUG
+    com.zcommcx: INFO
