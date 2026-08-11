@@ -8,8 +8,10 @@ import type {
   ReviewSummaryResponse,
 } from '../types/review'
 import type { PageResponse } from '../types/page'
+import { attachSiteAuthInterceptor } from '../stores/siteAuth'
 
 const client = axios.create({ baseURL: '/api' })
+attachSiteAuthInterceptor(client)
 
 export interface FetchVisibleReviewsParams {
   page: number

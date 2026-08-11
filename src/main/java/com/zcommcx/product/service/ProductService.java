@@ -48,6 +48,13 @@ public class ProductService {
                 .orElseThrow(() -> new NotFoundException("상품을 찾을 수 없습니다. (id=%d)".formatted(id)));
     }
 
+    @Transactional
+    public Product updateDescription(Long id, String description) {
+        Product product = getProduct(id);
+        product.updateDescription(description);
+        return product;
+    }
+
     public Page<Product> findAll(int page, int size, String productCode, String brand) {
         Pageable pageable = PageRequest.of(page, size);
         if (brand != null && !brand.isBlank()) {

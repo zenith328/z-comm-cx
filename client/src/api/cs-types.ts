@@ -1,3 +1,66 @@
+export type Gender = 'MALE' | 'FEMALE'
+
+export interface MemberResponse {
+  name: string
+  phone: string
+  gender: Gender | null
+  age: number | null
+  createdAt: string
+  updatedAt: string
+}
+
+export interface MemberLoginResponse {
+  member: MemberResponse
+  firstLogin: boolean
+}
+
+export interface MemberProfileUpdateRequest {
+  name: string
+  phone: string
+  gender: Gender | null
+  age: number | null
+}
+
+export type CustomerSegment =
+  | 'MALE_10_20S'
+  | 'MALE_30_40S'
+  | 'MALE_50S_PLUS'
+  | 'FEMALE_10_20S'
+  | 'FEMALE_30_40S'
+  | 'FEMALE_50S_PLUS'
+
+export interface SegmentKeywordResponse {
+  segment: CustomerSegment
+  segmentLabel: string
+  gender: Gender
+  keywords: string | null
+  updatedAt: string | null
+}
+
+export interface SegmentKeywordRequest {
+  keywords: string
+}
+
+export interface DescriptionExtractResponse {
+  text: string
+}
+
+export interface ProductDescriptionResponse {
+  text: string | null
+  personalized: boolean
+}
+
+export type DescriptionVariantStatus = 'NOT_GENERATED' | 'DRAFT' | 'APPROVED'
+
+export interface ProductDescriptionVariantResponse {
+  segment: CustomerSegment
+  segmentLabel: string
+  content: string | null
+  status: DescriptionVariantStatus
+  generatedAt: string | null
+  approvedAt: string | null
+}
+
 export type TicketCategory = 'CANCEL' | 'ADDRESS_CHANGE' | 'RETURN' | 'INQUIRY' | 'OTHER'
 export type TicketStatus = 'OPEN' | 'IN_PROGRESS' | 'ESCALATED' | 'CLOSED'
 export type TicketChannel = 'AI' | 'HUMAN'

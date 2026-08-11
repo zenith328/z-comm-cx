@@ -5,6 +5,7 @@ export interface Product {
   name: string
   brand: string | null
   price: number | null
+  description: string | null
   imageUrls: string[]
   reviewCount: number
   stockQuantity: number | null

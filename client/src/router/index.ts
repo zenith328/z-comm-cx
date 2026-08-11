@@ -45,6 +45,16 @@ const router = createRouter({
     { path: '/admin', redirect: '/admin/guide' },
     { path: '/admin/guide', name: 'admin-guide', component: () => import('../views/AdminGuideView.vue') },
     { path: '/admin/products', name: 'admin-products', component: () => import('../views/AdminProductView.vue') },
+    {
+      path: '/admin/products/:id',
+      name: 'admin-product-detail',
+      component: () => import('../views/AdminProductDetailView.vue'),
+    },
+    {
+      path: '/admin/segment-keywords',
+      name: 'admin-segment-keywords',
+      component: () => import('../views/AdminSegmentKeywordView.vue'),
+    },
     { path: '/admin/reviews', name: 'admin-reviews', component: () => import('../views/AdminReviewView.vue') },
     { path: '/admin/orders', name: 'admin-orders', component: () => import('../views/AdminOrderView.vue') },
     { path: '/admin/tickets', name: 'admin-tickets', component: () => import('../views/AdminCsTicketView.vue') },

@@ -8,6 +8,7 @@ import com.zcommcx.inventory.web.dto.RestockRequest;
 import com.zcommcx.product.domain.Product;
 import com.zcommcx.product.service.ProductService;
 import com.zcommcx.product.web.dto.ProductCreateRequest;
+import com.zcommcx.product.web.dto.ProductDescriptionUpdateRequest;
 import com.zcommcx.product.web.dto.ProductResponse;
 import com.zcommcx.review.service.ReviewService;
 import jakarta.validation.Valid;
@@ -18,6 +19,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -58,6 +60,11 @@ public class ProductController {
     @GetMapping("/{id}")
     public ProductResponse getProduct(@PathVariable Long id) {
         return toResponse(productService.getProduct(id));
+    }
+
+    @PutMapping("/{id}/description")
+    public ProductResponse updateDescription(@PathVariable Long id, @Valid @RequestBody ProductDescriptionUpdateRequest request) {
+        return toResponse(productService.updateDescription(id, request.description()));
     }
 
     @GetMapping("/{id}/inventory")
