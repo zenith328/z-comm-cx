@@ -28,12 +28,18 @@ public class DbUsageService {
         return bytes != null ? bytes : 0L;
     }
 
-    /** 용량을 많이 차지하는 순서로 테이블 목록을 반환한다 (row 수는 정확한 COUNT가 아닌 통계 추정치). */
+    /**
+     * 용량을 많이 차지하는 순서로 테이블 목록을 반환한다 (row 수는 정확한 COUNT가 아닌 통계 추정치).
+     * Supabase는 프로젝트마다 auth/storage/realtime 등 자체 스키마에 우리와 무관한 테이블(users,
+     * one_time_tokens 등)을 함께 두므로, 우리 애플리케이션 테이블이 있는 public 스키마만 본다.
+     * (전체 사용량({@link #totalBytes})은 그 테이블들도 포함해서 계산돼야 500MB 한도와 맞으므로
+     * 그쪽은 스키마 제한을 두지 않는다.)
+     */
     public List<TableUsage> topTables(int limit) {
         return jdbcTemplate.query(
                 "select relname as table_name, pg_total_relation_size(relid) as total_bytes, "
                         + "n_live_tup as row_estimate "
-                        + "from pg_stat_user_tables order by total_bytes desc limit ?",
+                        + "from pg_stat_user_tables where schemaname = 'public' order by total_bytes desc limit ?",
                 (rs, rowNum) -> new TableUsage(
                         rs.getString("table_name"), rs.getLong("total_bytes"), rs.getLong("row_estimate")),
                 limit);
