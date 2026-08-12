@@ -21,9 +21,17 @@ spring:
 
 gemini:
   api-key: ${GEMINI_API_KEY:}
-  model: gemini-flash-latest
+  model: ${GEMINI_MODEL:gemini-3.5-flash-lite}
   base-url: https://generativelanguage.googleapis.com/v1beta
   max-reviews-per-summary: 30
+  usage:
+    # 배포 환경(Render)은 로컬과 다른 계정을 쓰고 있어 한도가 더 크다. 환경변수로 오버라이드한다.
+    # 여기 값은 gemini-3.5-flash-lite 무료 등급 기준 기본값이며, 실제로는 RPD만 추적/표시하고
+    # RPM/TPM은 참고 표시용이다.
+    tier: ${GEMINI_TIER:무료}
+    rpm-limit: ${GEMINI_RPM_LIMIT:15}
+    tpm-limit: ${GEMINI_TPM_LIMIT:250000}
+    rpd-limit: ${GEMINI_RPD_LIMIT:500}
 
 guardrail:
   return-window-days: 7

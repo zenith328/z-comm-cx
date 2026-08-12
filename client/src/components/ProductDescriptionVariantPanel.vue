@@ -11,6 +11,7 @@ import {
   generateProductDescriptionVariant,
 } from '../api/productDescriptionVariants'
 import type { CustomerSegment, ProductDescriptionVariantResponse } from '../api/cs-types'
+import { isQuotaExceededError } from '../utils/apiError'
 
 const props = defineProps<{ productId: number }>()
 
@@ -30,6 +31,7 @@ const variants = ref<ProductDescriptionVariantResponse[]>([])
 const generatingSegment = ref<CustomerSegment | null>(null)
 const approvingSegment = ref<CustomerSegment | null>(null)
 const actionErrorSegment = ref<CustomerSegment | null>(null)
+const actionErrorMessage = ref('처리 실패')
 const generatingAll = ref(false)
 const generateAllError = ref('')
 
@@ -91,7 +93,9 @@ async function extractFromUrl() {
     baseDescription.value = await extractDescriptionFromUrl(props.productId, extractUrl.value.trim())
   } catch (error) {
     console.error(error)
-    extractError.value = '텍스트를 추출하지 못했습니다. URL을 확인해주세요.'
+    extractError.value = isQuotaExceededError(error)
+      ? 'AI 사용량 한도를 초과했습니다. 잠시 후 다시 시도해주세요.'
+      : '텍스트를 추출하지 못했습니다. URL을 확인해주세요.'
   } finally {
     extracting.value = false
   }
@@ -106,6 +110,9 @@ async function generate(segment: CustomerSegment) {
   } catch (error) {
     console.error(error)
     actionErrorSegment.value = segment
+    actionErrorMessage.value = isQuotaExceededError(error)
+      ? 'AI 사용량 한도를 초과했습니다. 잠시 후 다시 시도해주세요.'
+      : '처리 실패'
   } finally {
     generatingSegment.value = null
   }
@@ -120,6 +127,7 @@ async function approve(segment: CustomerSegment) {
   } catch (error) {
     console.error(error)
     actionErrorSegment.value = segment
+    actionErrorMessage.value = '처리 실패'
   } finally {
     approvingSegment.value = null
   }
@@ -149,6 +157,7 @@ async function saveEdit(segment: CustomerSegment) {
   } catch (error) {
     console.error(error)
     actionErrorSegment.value = segment
+    actionErrorMessage.value = '처리 실패'
   } finally {
     savingEdit.value = false
   }
@@ -164,6 +173,7 @@ async function removeVariant(segment: CustomerSegment) {
   } catch (error) {
     console.error(error)
     actionErrorSegment.value = segment
+    actionErrorMessage.value = '처리 실패'
   } finally {
     deletingSegment.value = null
   }
@@ -176,7 +186,9 @@ async function generateAll() {
     variants.value = await generateAllProductDescriptionVariants(props.productId)
   } catch (error) {
     console.error(error)
-    generateAllError.value = '전체 생성에 실패했습니다. 기본 상세설명이 입력되어 있는지 확인해주세요.'
+    generateAllError.value = isQuotaExceededError(error)
+      ? 'AI 사용량 한도를 초과했습니다. 잠시 후 다시 시도해주세요.'
+      : '전체 생성에 실패했습니다. 기본 상세설명이 입력되어 있는지 확인해주세요.'
   } finally {
     generatingAll.value = false
   }
@@ -245,7 +257,7 @@ onMounted(load)
             <template v-if="editingSegment === row.segment">
               <textarea v-model="editDrafts[row.segment]" rows="3" class="edit-textarea"></textarea>
               <div class="variant-row-footer">
-                <span v-if="actionErrorSegment === row.segment" class="error">처리 실패</span>
+                <span v-if="actionErrorSegment === row.segment" class="error">{{ actionErrorMessage }}</span>
                 <button type="button" :disabled="savingEdit" @click="saveEdit(row.segment)">
                   {{ savingEdit ? '저장 중...' : '저장' }}
                 </button>
@@ -256,7 +268,7 @@ onMounted(load)
               <p v-if="row.content" class="variant-content">{{ row.content }}</p>
               <p v-else class="variant-content empty">아직 생성된 설명이 없습니다.</p>
               <div class="variant-row-footer">
-                <span v-if="actionErrorSegment === row.segment" class="error">처리 실패</span>
+                <span v-if="actionErrorSegment === row.segment" class="error">{{ actionErrorMessage }}</span>
                 <button type="button" :disabled="anyBusy" @click="generate(row.segment)">
                   {{ generatingSegment === row.segment ? '생성 중...' : row.status === 'NOT_GENERATED' ? 'AI 생성' : 'AI 재생성' }}
                 </button>
@@ -290,7 +302,7 @@ onMounted(load)
             <template v-if="editingSegment === row.segment">
               <textarea v-model="editDrafts[row.segment]" rows="3" class="edit-textarea"></textarea>
               <div class="variant-row-footer">
-                <span v-if="actionErrorSegment === row.segment" class="error">처리 실패</span>
+                <span v-if="actionErrorSegment === row.segment" class="error">{{ actionErrorMessage }}</span>
                 <button type="button" :disabled="savingEdit" @click="saveEdit(row.segment)">
                   {{ savingEdit ? '저장 중...' : '저장' }}
                 </button>
@@ -301,7 +313,7 @@ onMounted(load)
               <p v-if="row.content" class="variant-content">{{ row.content }}</p>
               <p v-else class="variant-content empty">아직 생성된 설명이 없습니다.</p>
               <div class="variant-row-footer">
-                <span v-if="actionErrorSegment === row.segment" class="error">처리 실패</span>
+                <span v-if="actionErrorSegment === row.segment" class="error">{{ actionErrorMessage }}</span>
                 <button type="button" :disabled="anyBusy" @click="generate(row.segment)">
                   {{ generatingSegment === row.segment ? '생성 중...' : row.status === 'NOT_GENERATED' ? 'AI 생성' : 'AI 재생성' }}
                 </button>

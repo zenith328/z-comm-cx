@@ -21,6 +21,12 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body(HttpStatus.BAD_REQUEST, e.getMessage()));
     }
 
+    @ExceptionHandler(AiQuotaExceededException.class)
+    public ResponseEntity<Map<String, Object>> handleAiQuotaExceeded(AiQuotaExceededException e) {
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body(body(HttpStatus.TOO_MANY_REQUESTS, e.getMessage()));
+    }
+
     private Map<String, Object> body(HttpStatus status, String message) {
         return Map.of(
                 "timestamp", LocalDateTime.now().toString(),

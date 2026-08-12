@@ -1,5 +1,7 @@
 package com.zcommcx.gemini.client;
 
+import com.zcommcx.aiusage.service.GeminiApiUsageService;
+import com.zcommcx.common.exception.AiQuotaExceededException;
 import com.zcommcx.gemini.config.GeminiProperties;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -10,6 +12,7 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestClientResponseException;
 
 /**
  * Gemini generateContent 호출을 담당하는 저수준 클라이언트.
@@ -21,11 +24,13 @@ public class GeminiClient {
     private final GeminiProperties properties;
     private final ObjectMapper objectMapper;
     private final RestClient restClient;
+    private final GeminiApiUsageService usageService;
 
-    public GeminiClient(GeminiProperties properties, ObjectMapper objectMapper) {
+    public GeminiClient(GeminiProperties properties, ObjectMapper objectMapper, GeminiApiUsageService usageService) {
         this.properties = properties;
         this.objectMapper = objectMapper;
         this.restClient = RestClient.create();
+        this.usageService = usageService;
     }
 
     public JsonNode generateContent(ArrayNode contents, ArrayNode functionDeclarations, String systemInstruction) {
@@ -40,15 +45,24 @@ public class GeminiClient {
                     .body(buildRequestBody(contents, functionDeclarations, systemInstruction))
                     .retrieve()
                     .body(String.class);
+        } catch (RestClientResponseException e) {
+            if (e.getStatusCode().value() == 429) {
+                throw new AiQuotaExceededException("Gemini API 사용량 한도를 초과했습니다.", e);
+            }
+            throw new GeminiClientException("Gemini API 호출에 실패했습니다.", e);
         } catch (RestClientException e) {
             throw new GeminiClientException("Gemini API 호출에 실패했습니다.", e);
         }
 
+        JsonNode root;
         try {
-            return objectMapper.readTree(rawResponse);
+            root = objectMapper.readTree(rawResponse);
         } catch (JsonProcessingException e) {
             throw new GeminiClientException("Gemini 응답 파싱에 실패했습니다. rawResponse=" + rawResponse, e);
         }
+
+        usageService.recordRequest(root.path("usageMetadata").path("totalTokenCount").asLong(0));
+        return root;
     }
 
     private ObjectNode buildRequestBody(ArrayNode contents, ArrayNode functionDeclarations, String systemInstruction) {

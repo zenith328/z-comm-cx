@@ -5,6 +5,7 @@ import { sendChatMessage } from '../api/chat'
 import { session } from '../stores/session'
 import { getChatState, saveChatState } from '../utils/chatHistory'
 import { renderMarkdownLite } from '../utils/markdown'
+import { isQuotaExceededError } from '../utils/apiError'
 
 interface ChatMessage {
   role: 'user' | 'assistant' | 'error'
@@ -52,8 +53,11 @@ async function send() {
     const response = await sendChatMessage(sessionId.value, text, customer)
     sessionId.value = response.sessionId
     messages.value.push({ role: 'assistant', text: response.reply })
-  } catch {
-    messages.value.push({ role: 'error', text: '요청 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.' })
+  } catch (error) {
+    const text = isQuotaExceededError(error)
+      ? 'AI 사용량 한도를 초과해 지금은 답변할 수 없습니다. 잠시 후 다시 시도해 주세요.'
+      : '요청 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.'
+    messages.value.push({ role: 'error', text })
   } finally {
     sending.value = false
     await scrollToBottom()

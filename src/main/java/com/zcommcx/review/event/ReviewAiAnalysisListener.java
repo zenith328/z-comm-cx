@@ -1,5 +1,6 @@
 package com.zcommcx.review.event;
 
+import com.zcommcx.common.exception.AiQuotaExceededException;
 import com.zcommcx.review.ai.ReviewAiClassificationException;
 import com.zcommcx.review.ai.ReviewAiResult;
 import com.zcommcx.review.ai.ReviewClassifier;
@@ -39,9 +40,13 @@ public class ReviewAiAnalysisListener {
                     result.visible(), result.classification(), result.sentiment(), result.riskScore(), result.reason()));
             // AI가 공개여부/분류를 확정했으므로, 이 상품의 요약 캐시는 더 이상 최신이 아니다.
             reviewSummaryCacheRepository.deleteByProductCode(review.getProductCode());
+        } catch (AiQuotaExceededException e) {
+            log.error("리뷰 AI 분석이 Gemini 사용량 한도 초과로 실패했습니다. reviewId={}", event.reviewId(), e);
+            applyIfStillPending(event.reviewId(),
+                    fresh -> fresh.markAnalysisFailed("AI 사용량 한도를 초과해 분석하지 못했습니다. 잠시 후 재시도해주세요."));
         } catch (ReviewAiClassificationException e) {
             log.error("리뷰 AI 분석 실패. reviewId={}", event.reviewId(), e);
-            applyIfStillPending(event.reviewId(), Review::markAnalysisFailed);
+            applyIfStillPending(event.reviewId(), fresh -> fresh.markAnalysisFailed("AI 분석 중 오류가 발생했습니다."));
         }
     }
 
