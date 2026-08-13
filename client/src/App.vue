@@ -4,6 +4,8 @@ import { useRoute, useRouter } from 'vue-router'
 import Breadcrumb from './components/Breadcrumb.vue'
 import GoogleSignInButton from './components/GoogleSignInButton.vue'
 import LoginForm from './components/LoginForm.vue'
+import MemberProfilePrompt from './components/MemberProfilePrompt.vue'
+import MemberInfoModal from './components/MemberInfoModal.vue'
 import { login, logout, session } from './stores/session'
 import { checkSiteAuth, loginSiteWithGoogle, logoutSite, siteAuth } from './stores/siteAuth'
 import { fetchSiteAuthConfig } from './api/siteAuth'
@@ -47,6 +49,9 @@ async function handleSiteLogout() {
 
 const logoutConfirmOpen = ref(false)
 const loginLayerOpen = ref(false)
+const loginLayerStep = ref<'form' | 'profile'>('form')
+const loginLayerError = ref('')
+const myInfoOpen = ref(false)
 
 const guardrailLayerOpen = ref(false)
 const guardrailInfo = ref<GuardrailResponse | null>(null)
@@ -65,6 +70,12 @@ async function openGuardrailLayer() {
 function confirmLogout() {
   logoutConfirmOpen.value = false
   logout()
+  openLoginLayer()
+}
+
+function openLoginLayer() {
+  loginLayerStep.value = 'form'
+  loginLayerError.value = ''
   loginLayerOpen.value = true
 }
 
@@ -72,12 +83,26 @@ function goCustomer() {
   if (session.current) {
     router.push('/products')
   } else {
-    loginLayerOpen.value = true
+    openLoginLayer()
   }
 }
 
-function handleLoginLayerSubmit(payload: { name: string; phone: string }) {
-  login(payload)
+async function handleLoginLayerSubmit(payload: { name: string; phone: string }) {
+  loginLayerError.value = ''
+  try {
+    const { firstLogin } = await login(payload)
+    if (firstLogin) {
+      loginLayerStep.value = 'profile'
+    } else {
+      finishLoginLayer()
+    }
+  } catch (e) {
+    console.error(e)
+    loginLayerError.value = '로그인에 실패했습니다. 잠시 후 다시 시도해주세요.'
+  }
+}
+
+function finishLoginLayer() {
   loginLayerOpen.value = false
   router.push('/products')
 }
@@ -96,6 +121,7 @@ function handleLoginLayerCancel() {
   <main v-else-if="!siteAuth.email" class="page site-gate-page">
     <h1>Z Commerce CX</h1>
     <p class="site-gate-hint">이 사이트는 허용된 Google 계정으로만 접근할 수 있습니다.</p>
+    <p v-if="siteAuth.expired" class="site-gate-error">세션이 만료되었습니다. 다시 로그인해 주세요.</p>
 
     <div v-if="siteLoginLoading" class="site-gate-loading">
       <span class="spinner"></span>
@@ -130,7 +156,7 @@ function handleLoginLayerCancel() {
           <RouterLink to="/orders" active-class="active">주문목록</RouterLink>
           <RouterLink to="/chat" active-class="active">CS채팅</RouterLink>
           <div v-if="session.current" class="user-box">
-            <span>{{ session.current.name }}님</span>
+            <button type="button" class="name-link" @click="myInfoOpen = true">{{ session.current.name }}님</button>
             <div class="logout-wrapper">
               <button type="button" @click="logoutConfirmOpen = !logoutConfirmOpen">로그아웃</button>
               <div v-if="logoutConfirmOpen" class="logout-popover">
@@ -163,9 +189,19 @@ function handleLoginLayerCancel() {
 
     <div v-if="loginLayerOpen" class="modal-overlay" @click.self="loginLayerOpen = false">
       <div class="login-modal">
-        <h3>로그인</h3>
-        <p class="hint">고객화면을 이용하려면 이름과 전화번호를 입력해 주세요.</p>
-        <LoginForm show-cancel @submit="handleLoginLayerSubmit" @cancel="handleLoginLayerCancel" />
+        <template v-if="loginLayerStep === 'form'">
+          <h3>로그인</h3>
+          <p class="hint">고객화면을 이용하려면 이름과 전화번호를 입력해 주세요.</p>
+          <p v-if="loginLayerError" class="site-gate-error">{{ loginLayerError }}</p>
+          <LoginForm show-cancel @submit="handleLoginLayerSubmit" @cancel="handleLoginLayerCancel" />
+        </template>
+        <MemberProfilePrompt v-else @done="finishLoginLayer" />
+      </div>
+    </div>
+
+    <div v-if="myInfoOpen" class="modal-overlay" @click.self="myInfoOpen = false">
+      <div class="login-modal">
+        <MemberInfoModal @close="myInfoOpen = false" />
       </div>
     </div>
 
@@ -285,6 +321,17 @@ h1 {
   background: #fff;
   font-size: 12px;
   cursor: pointer;
+}
+.user-box button.name-link {
+  padding: 0;
+  border: none;
+  background: none;
+  font-size: 14px;
+  color: #444;
+  text-decoration: underline;
+}
+.user-box button.name-link:hover {
+  color: #0056b3;
 }
 .logout-wrapper {
   position: relative;

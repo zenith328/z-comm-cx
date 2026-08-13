@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import '../styles/admin.css'
-import CollapsibleSection from '../components/CollapsibleSection.vue'
 import { clearSummaryCache, fetchDbUsage, purgeTicketTranscripts } from '../api/dbUsage'
 import type { DbUsageResponse } from '../api/dbUsage'
+import { fetchGeminiUsage } from '../api/geminiUsage'
+import type { DailyUsageResponse, GeminiApiUsageResponse } from '../api/geminiUsage'
 import { formatBytes } from '../utils/format'
 
 const usage = ref<DbUsageResponse | null>(null)
@@ -77,16 +78,112 @@ async function onPurgeTranscripts() {
   }
 }
 
+const geminiUsage = ref<GeminiApiUsageResponse | null>(null)
+const geminiLoading = ref(false)
+const geminiError = ref('')
+
+const geminiUsedPercent = computed(() => {
+  if (!geminiUsage.value || geminiUsage.value.limitPerDay === 0) return 0
+  return Math.min(100, (geminiUsage.value.today.requestCount / geminiUsage.value.limitPerDay) * 100)
+})
+
+const geminiUsageTone = computed(() => {
+  if (geminiUsedPercent.value >= 95) return 'danger'
+  if (geminiUsedPercent.value >= 80) return 'warning'
+  return 'ok'
+})
+
+// koreaRangeStart/End는 "YYYY-MM-DDTHH:mm:ss" 형식(LocalDateTime) — "MM-DD HH:mm"만 뽑아서 보여준다.
+function formatKoreaTime(value: string): string {
+  return value.replace('T', ' ').slice(5, 16)
+}
+
+function formatDateWithZone(day: DailyUsageResponse): string {
+  return `${day.date} (PT) (한국시간 ${formatKoreaTime(day.koreaRangeStart)} ~ ${formatKoreaTime(day.koreaRangeEnd)})`
+}
+
+async function loadGeminiUsage() {
+  geminiLoading.value = true
+  geminiError.value = ''
+  try {
+    geminiUsage.value = await fetchGeminiUsage()
+  } catch {
+    geminiError.value = 'AI API 사용량 정보를 불러오지 못했습니다.'
+  } finally {
+    geminiLoading.value = false
+  }
+}
+
 onMounted(load)
+onMounted(loadGeminiUsage)
+
+type SystemTab = 'db' | 'gemini'
+const activeTab = ref<SystemTab>('gemini')
 </script>
 
 <template>
   <section class="admin-page">
-    <h2 class="admin-title">시스템관리</h2>
+    <!-- 앞으로 이 화면에 다른 시스템 관리 기능이 추가되면, 탭을 하나 더 추가하면 된다. -->
+    <div class="system-tabs">
+      <button
+        type="button"
+        class="system-tab"
+        :class="{ active: activeTab === 'gemini' }"
+        @click="activeTab = 'gemini'"
+      >
+        AI API 관리 (제미나이 API 사용량)
+      </button>
+      <button type="button" class="system-tab" :class="{ active: activeTab === 'db' }" @click="activeTab = 'db'">
+        DB 관리 (Supabase 용량)
+      </button>
+    </div>
 
-    <!-- 앞으로 이 화면에 다른 시스템 관리 기능이 추가되면, CollapsibleSection으로 감싸서
-         이 밑에 같은 방식으로 추가하면 된다. -->
-    <CollapsibleSection title="DB 관리 (Supabase 용량)">
+    <section v-show="activeTab === 'gemini'" class="tab-panel">
+      <p v-if="geminiError" class="admin-error">{{ geminiError }}</p>
+      <p v-else-if="geminiLoading && !geminiUsage">불러오는 중...</p>
+
+      <template v-else-if="geminiUsage">
+        <section class="usage-box">
+          <div class="usage-header">
+            <h3>오늘 요청 수 (RPD) — {{ geminiUsage.tier }} 등급</h3>
+            <button type="button" @click="loadGeminiUsage" :disabled="geminiLoading">새로고침</button>
+          </div>
+          <div class="usage-bar-track">
+            <div class="usage-bar-fill" :class="geminiUsageTone" :style="{ width: `${geminiUsedPercent}%` }"></div>
+          </div>
+          <p class="usage-date">{{ formatDateWithZone(geminiUsage.today) }}</p>
+          <p class="usage-summary">
+            {{ geminiUsage.today.requestCount }} / {{ geminiUsage.limitPerDay }}회 사용 중
+            ({{ geminiUsedPercent.toFixed(1) }}%), 토큰 {{ geminiUsage.today.tokenCount.toLocaleString() }} 사용
+            — {{ geminiUsage.tier }} 등급 한도(RPM {{ geminiUsage.rpmLimit }}, TPM
+            {{ geminiUsage.tpmLimit.toLocaleString() }}, RPD {{ geminiUsage.limitPerDay }}) 중 RPD만 제어하고
+            토큰은 참고용으로만 누적합니다.
+          </p>
+
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>날짜</th>
+                <th>요청 수</th>
+                <th>토큰 수</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-if="geminiUsage.recent.length === 0">
+                <td colspan="3">기록이 없습니다.</td>
+              </tr>
+              <tr v-for="day in geminiUsage.recent" :key="day.date">
+                <td>{{ formatDateWithZone(day) }}</td>
+                <td>{{ day.requestCount.toLocaleString() }}</td>
+                <td>{{ day.tokenCount.toLocaleString() }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+      </template>
+    </section>
+
+    <section v-show="activeTab === 'db'" class="tab-panel">
       <p v-if="errorMessage" class="admin-error">{{ errorMessage }}</p>
       <p v-else-if="loading && !usage">불러오는 중...</p>
 
@@ -156,11 +253,38 @@ onMounted(load)
           </div>
         </section>
       </template>
-    </CollapsibleSection>
+    </section>
   </section>
 </template>
 
 <style scoped>
+.system-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid #e0e0e0;
+}
+.system-tab {
+  padding: 10px 18px;
+  border: none;
+  background: none;
+  font-size: 14px;
+  color: #666;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+.system-tab:hover {
+  color: #222;
+}
+.system-tab.active {
+  color: #0056b3;
+  font-weight: 600;
+  border-bottom-color: #0056b3;
+}
+.tab-panel {
+  padding-top: 4px;
+}
 .usage-box,
 .cleanup-box {
   border: 1px solid #e0e0e0;
@@ -207,6 +331,11 @@ onMounted(load)
 }
 .usage-bar-fill.danger {
   background: #a80000;
+}
+.usage-date {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: #888;
 }
 .usage-summary {
   margin: 8px 0 16px;

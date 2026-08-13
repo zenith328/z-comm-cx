@@ -73,6 +73,7 @@ function formatDate(value: string): string {
           <div v-else class="stock-actions">
             <button type="button" @click="startRestock(product)">입고</button>
             <button type="button" @click="emit('outOfStock', product.id)">품절</button>
+            <RouterLink :to="`/admin/products/${product.id}`" class="detail-link">상세설명 관리</RouterLink>
           </div>
         </td>
       </tr>
@@ -113,6 +114,21 @@ th {
 .stock-actions {
   display: flex;
   gap: 4px;
+  align-items: center;
+}
+.detail-link {
+  padding: 4px 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: #fff;
+  color: #333;
+  font-size: 12px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.detail-link:hover {
+  border-color: #0056b3;
+  color: #0056b3;
 }
 .restock-box {
   display: flex;

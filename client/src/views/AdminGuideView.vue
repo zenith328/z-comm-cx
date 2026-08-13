@@ -12,10 +12,11 @@ interface GuideSection {
   customerFlow: FlowStep[]
   adminFlow: FlowStep[]
   placeholder?: boolean
+  inProgress?: boolean
 }
 
-// 이 플랫폼은 원래 별개였던 조별과제들을 하나씩 통합해서 만들어졌다. 세 번째 과제도 곧 추가될
-// 예정이라, 새 과제가 들어올 때마다 이 배열에 섹션 하나만 더 추가하면 되도록 구성했다.
+// 이 플랫폼은 원래 별개였던 조별과제들을 하나씩 통합해서 만들어졌다. 새 과제가 들어올 때마다
+// 이 배열에 섹션 하나만 더 추가하면 되도록 구성했다.
 const sections: GuideSection[] = [
   {
     badge: '① ai-review-management',
@@ -56,12 +57,30 @@ const sections: GuideSection[] = [
     ],
   },
   {
-    badge: '③ 준비 중',
-    title: '다음 과제',
-    summary: '세 번째 과제가 곧 이 플랫폼 위에 통합될 예정입니다. 준비되는 대로 이 자리에 안내가 추가됩니다.',
-    customerFlow: [],
-    adminFlow: [],
-    placeholder: true,
+    badge: '③ ai-product-personalization',
+    title: 'AI 기반 고객 맞춤형 상품 상세설명',
+    inProgress: true,
+    summary:
+      '고객의 성별·연령 성향(6개 세그먼트)에 맞춰 AI가 상품 상세설명을 다르게 만들어 보여줍니다. 세그먼트별 키워드는 관리자가 입력하고, AI는 이를 참고해서만 작성합니다.',
+    customerFlow: [
+      { label: '로그인', to: '/login', desc: '이름/전화번호를 입력합니다. 처음 로그인하는 경우에만 성별·연령(둘 다 선택)을 추가로 입력받습니다.' },
+      {
+        label: '상품상세',
+        desc: '리뷰 위쪽에서 상세설명을 확인합니다. 내 성별·연령에 맞는 승인된 설명이 있으면 그걸, 없으면 기본 설명을 보여주며, 맞춤 설명일 땐 "고객님을 위한 맞춤 설명" 배지가 붙습니다.',
+      },
+      { label: '내 정보', desc: '헤더의 이름을 클릭하면 성별·연령을 언제든 수정할 수 있고, 저장하면 보고 있던 상품상세 설명도 즉시 다시 조회됩니다.' },
+    ],
+    adminFlow: [
+      {
+        label: '성향키워드',
+        to: '/admin/segment-keywords',
+        desc: '상품관리 화면의 "성향키워드 관리" 버튼으로 들어와, 성별×연령 6개 세그먼트별로 강조할 키워드를 전체 상품 공통으로 입력합니다.',
+      },
+      {
+        label: '상품 상세설명 관리',
+        desc: '상품관리 목록의 "상세설명 관리" 버튼으로 상품별 화면에 들어가, 기본 설명을 입력(직접 입력 또는 URL·이미지에서 텍스트 추출)하고 세그먼트별로 AI 생성(개별/전체)·직접 수정·삭제·승인을 진행합니다. 승인해야 고객화면에 노출됩니다.',
+      },
+    ],
   },
 ]
 </script>
@@ -76,10 +95,16 @@ const sections: GuideSection[] = [
       </p>
     </section>
 
+    <section class="login-note">
+      <p><strong>사이트 로그인</strong>(Google 계정) — 이 배포에 들어올 자격이 있는지 확인하는 관문입니다. 운영자어드민·고객화면 전체를 이용하려면 먼저 필요합니다.</p>
+      <p><strong>회원 로그인</strong>(이름/전화번호) — 사이트 로그인 이후, 고객화면에서 리뷰 작성·주문·CS채팅 등 고객 기능을 쓸 때만 필요한 별도의 간단한 신원입니다.</p>
+    </section>
+
     <section v-for="section in sections" :key="section.badge" class="guide-section" :class="{ placeholder: section.placeholder }">
       <div class="section-header">
         <span class="badge">{{ section.badge }}</span>
         <h3>{{ section.title }}</h3>
+        <span v-if="section.inProgress" class="status-tag">진행중</span>
       </div>
       <p class="summary">{{ section.summary }}</p>
 
@@ -130,6 +155,24 @@ const sections: GuideSection[] = [
   font-size: 14px;
   line-height: 1.6;
 }
+.login-note {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 16px;
+  background: #f5f7fa;
+  border: 1px solid #e3e6ea;
+  border-radius: 8px;
+}
+.login-note p {
+  margin: 0;
+  font-size: 13px;
+  color: #555;
+  line-height: 1.5;
+}
+.login-note strong {
+  color: #222;
+}
 .guide-section {
   border: 1px solid #e0e0e0;
   border-radius: 10px;
@@ -158,6 +201,15 @@ const sections: GuideSection[] = [
 .placeholder .badge {
   background: #e6e6e6;
   color: #888;
+}
+.status-tag {
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: #fde2c8;
+  color: #a35b00;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
 }
 .section-header h3 {
   margin: 0;

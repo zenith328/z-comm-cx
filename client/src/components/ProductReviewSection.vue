@@ -7,6 +7,7 @@ import Pagination from './Pagination.vue'
 import SentimentBadge from './SentimentBadge.vue'
 import { CLASSIFICATION_LABELS, CLASSIFICATION_OPTIONS } from '../constants/review'
 import type { ClientReview, ReviewClassification, ReviewSentiment, ReviewSortOption } from '../types/review'
+import { isQuotaExceededError } from '../utils/apiError'
 
 type TypeFilter = 'ALL' | 'TEXT' | 'IMAGE'
 type ClassificationFilter = 'ALL' | ReviewClassification
@@ -103,7 +104,9 @@ async function requestSummary() {
     summaryReviewCount.value = result.reviewCount
   } catch (error) {
     console.error(error)
-    summaryError.value = '요약을 받아오지 못했습니다.'
+    summaryError.value = isQuotaExceededError(error)
+      ? 'AI 사용량 한도를 초과해 지금은 요약을 볼 수 없습니다. 잠시 후 다시 시도해주세요.'
+      : '요약을 받아오지 못했습니다.'
   } finally {
     summarizing.value = false
   }

@@ -101,8 +101,9 @@ public class Review {
         this.status = ReviewStatus.ANALYZED;
     }
 
-    public void markAnalysisFailed() {
+    public void markAnalysisFailed(String reason) {
         this.status = ReviewStatus.FAILED;
+        this.aiReason = reason;
     }
 
     public void markPendingReanalysis() {

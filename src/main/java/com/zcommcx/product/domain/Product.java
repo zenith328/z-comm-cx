@@ -40,6 +40,9 @@ public class Product {
 
     private Long price;
 
+    @Column(columnDefinition = "TEXT")
+    private String description;
+
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "product_image_url", joinColumns = @JoinColumn(name = "product_id"))
     @OrderColumn(name = "sort_order")
@@ -62,5 +65,12 @@ public class Product {
         this.price = info.price();
         this.imageUrls.clear();
         this.imageUrls.addAll(info.imageUrls());
+    }
+
+    /**
+     * 관리자가 직접 입력하는 기본 상품 상세설명. 세그먼트별 AI 설명 생성의 원본 소스로 쓰인다.
+     */
+    public void updateDescription(String description) {
+        this.description = description;
     }
 }

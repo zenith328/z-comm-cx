@@ -2,8 +2,10 @@ import axios from 'axios'
 import type { Product, ProductCreateRequest } from '../types/product'
 import type { PageResponse } from '../types/page'
 import type { InventoryResponse } from './cs-types'
+import { attachSiteAuthInterceptor } from '../stores/siteAuth'
 
 const client = axios.create({ baseURL: '/api' })
+attachSiteAuthInterceptor(client)
 
 export interface FetchProductsParams {
   page: number
@@ -26,6 +28,10 @@ export function fetchProduct(id: number): Promise<Product> {
 
 export function registerProduct(request: ProductCreateRequest): Promise<Product> {
   return client.post<Product>('/products', request).then((res) => res.data)
+}
+
+export function updateProductDescription(id: number, description: string): Promise<Product> {
+  return client.put<Product>(`/products/${id}/description`, { description }).then((res) => res.data)
 }
 
 export function restockProduct(id: number, quantity: number): Promise<InventoryResponse> {
