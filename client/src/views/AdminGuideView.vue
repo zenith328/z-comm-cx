@@ -12,6 +12,7 @@ interface GuideSection {
   customerFlow: FlowStep[]
   adminFlow: FlowStep[]
   placeholder?: boolean
+  inProgress?: boolean
 }
 
 // 이 플랫폼은 원래 별개였던 조별과제들을 하나씩 통합해서 만들어졌다. 새 과제가 들어올 때마다
@@ -58,6 +59,7 @@ const sections: GuideSection[] = [
   {
     badge: '③ ai-product-personalization',
     title: 'AI 기반 고객 맞춤형 상품 상세설명',
+    inProgress: true,
     summary:
       '고객의 성별·연령 성향(6개 세그먼트)에 맞춰 AI가 상품 상세설명을 다르게 만들어 보여줍니다. 세그먼트별 키워드는 관리자가 입력하고, AI는 이를 참고해서만 작성합니다.',
     customerFlow: [
@@ -93,10 +95,16 @@ const sections: GuideSection[] = [
       </p>
     </section>
 
+    <section class="login-note">
+      <p><strong>사이트 로그인</strong>(Google 계정) — 이 배포에 들어올 자격이 있는지 확인하는 관문입니다. 운영자어드민·고객화면 전체를 이용하려면 먼저 필요합니다.</p>
+      <p><strong>회원 로그인</strong>(이름/전화번호) — 사이트 로그인 이후, 고객화면에서 리뷰 작성·주문·CS채팅 등 고객 기능을 쓸 때만 필요한 별도의 간단한 신원입니다.</p>
+    </section>
+
     <section v-for="section in sections" :key="section.badge" class="guide-section" :class="{ placeholder: section.placeholder }">
       <div class="section-header">
         <span class="badge">{{ section.badge }}</span>
         <h3>{{ section.title }}</h3>
+        <span v-if="section.inProgress" class="status-tag">진행중</span>
       </div>
       <p class="summary">{{ section.summary }}</p>
 
@@ -147,6 +155,24 @@ const sections: GuideSection[] = [
   font-size: 14px;
   line-height: 1.6;
 }
+.login-note {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 16px;
+  background: #f5f7fa;
+  border: 1px solid #e3e6ea;
+  border-radius: 8px;
+}
+.login-note p {
+  margin: 0;
+  font-size: 13px;
+  color: #555;
+  line-height: 1.5;
+}
+.login-note strong {
+  color: #222;
+}
 .guide-section {
   border: 1px solid #e0e0e0;
   border-radius: 10px;
@@ -175,6 +201,15 @@ const sections: GuideSection[] = [
 .placeholder .badge {
   background: #e6e6e6;
   color: #888;
+}
+.status-tag {
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: #fde2c8;
+  color: #a35b00;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
 }
 .section-header h3 {
   margin: 0;
