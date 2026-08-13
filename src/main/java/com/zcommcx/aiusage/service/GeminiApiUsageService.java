@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
 
@@ -31,7 +32,7 @@ public class GeminiApiUsageService {
     @Transactional
     public void recordRequest(long tokenCount) {
         try {
-            repository.incrementUsage(today(), tokenCount);
+            repository.incrementUsage(today(), tokenCount, LocalDateTime.now());
         } catch (Exception e) {
             log.warn("Gemini API 사용량 기록에 실패했습니다.", e);
         }
