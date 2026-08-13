@@ -26,4 +26,6 @@ FROM eclipse-temurin:21-jre
 WORKDIR /app
 COPY --from=backend-build /app/build/libs/app.jar app.jar
 EXPOSE 8080
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# 베이스 이미지의 시스템 기본 시간대가 UTC라, 지정 안 하면 LocalDateTime.now() 기반의 모든
+# 등록일시(상품/주문/리뷰 등)가 UTC로 찍힌다. 로컬 개발 환경(KST)과 맞추기 위해 명시한다.
+ENTRYPOINT ["java", "-Duser.timezone=Asia/Seoul", "-jar", "app.jar"]
