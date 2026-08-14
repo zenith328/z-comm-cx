@@ -1,5 +1,6 @@
 package com.zcommcx.review.domain;
 
+import com.zcommcx.member.domain.Gender;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -26,6 +27,26 @@ public class Review {
 
     @Column(nullable = false)
     private String memberId;
+
+    /**
+     * 로그인 회원(member 테이블, name+phone 복합키)의 전화번호. NATIVE(앱에서 직접 작성) 리뷰만
+     * 로그인 세션에서 채워지고, EXTERNAL(외부 쇼핑몰에서 가져온) 리뷰나 이 필드 도입 이전 레거시
+     * 리뷰는 null이다.
+     */
+    private String memberPhone;
+
+    /**
+     * 작성 당시 회원의 성별/연령 스냅샷. "지금 이 회원이 어느 세그먼트인지"를 매번 다시 조회하지
+     * 않고 작성 시점 값을 고정해서 저장한다 — 그렇지 않으면 회원이 나중에 연령을 바꿨을 때 예전
+     * 리뷰가 함께 다른 세그먼트로 옮겨가버려, "이 세그먼트 고객이 실제로 쓴 리뷰"라는 전제가
+     * 깨진다(예: 작성 당시 20대였던 리뷰가, 회원이 나이를 30대로 갱신하는 순간 30대 리뷰로 둔갑).
+     * 프로필 미입력 회원이 쓴 리뷰나 EXTERNAL 리뷰는 둘 다 null이다.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(length = 10)
+    private Gender genderAtCreation;
+
+    private Integer ageAtCreation;
 
     @Column(nullable = false, columnDefinition = "text")
     private String content;
@@ -71,10 +92,13 @@ public class Review {
     private ReviewOrigin origin;
 
     public Review(
-            String productCode, String memberId, String content, int rating, boolean hasPhoto,
-            ReviewOrigin origin) {
+            String productCode, String memberId, String memberPhone, Gender genderAtCreation, Integer ageAtCreation,
+            String content, int rating, boolean hasPhoto, ReviewOrigin origin) {
         this.productCode = productCode;
         this.memberId = memberId;
+        this.memberPhone = memberPhone;
+        this.genderAtCreation = genderAtCreation;
+        this.ageAtCreation = ageAtCreation;
         this.content = content;
         this.rating = rating;
         this.hasPhoto = hasPhoto;

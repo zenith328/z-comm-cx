@@ -11,11 +11,14 @@ public record ProductDescriptionVariantResponse(
         String content,
         String status,
         LocalDateTime generatedAt,
-        LocalDateTime approvedAt) {
+        LocalDateTime approvedAt,
+        Integer fitScore,
+        String fitScoreReason) {
 
     public static ProductDescriptionVariantResponse of(CustomerSegment segment, ProductDescriptionVariant entity) {
         if (entity == null) {
-            return new ProductDescriptionVariantResponse(segment, segment.getLabel(), null, "NOT_GENERATED", null, null);
+            return new ProductDescriptionVariantResponse(
+                    segment, segment.getLabel(), null, "NOT_GENERATED", null, null, null, null);
         }
         return new ProductDescriptionVariantResponse(
                 segment,
@@ -23,6 +26,8 @@ public record ProductDescriptionVariantResponse(
                 entity.getContent(),
                 entity.getStatus().name(),
                 entity.getGeneratedAt(),
-                entity.getApprovedAt());
+                entity.getApprovedAt(),
+                entity.getFitScore(),
+                entity.getFitScoreReason());
     }
 }

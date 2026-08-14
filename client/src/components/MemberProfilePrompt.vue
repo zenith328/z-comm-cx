@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import GenderAgeForm from './GenderAgeForm.vue'
+import GenderBirthYearForm from './GenderBirthYearForm.vue'
 import { session, updateProfile } from '../stores/session'
 import type { Gender } from '../api/cs-types'
 
@@ -9,11 +9,11 @@ const emit = defineEmits<{ done: [] }>()
 const saving = ref(false)
 const error = ref('')
 
-async function handleSubmit(payload: { gender: Gender | null; age: number | null }) {
+async function handleSubmit(payload: { gender: Gender | null; birthYear: number | null }) {
   saving.value = true
   error.value = ''
   try {
-    await updateProfile(payload.gender, payload.age)
+    await updateProfile(payload.gender, payload.birthYear)
     emit('done')
   } catch (e) {
     console.error(e)
@@ -27,10 +27,10 @@ async function handleSubmit(payload: { gender: Gender | null; age: number | null
 <template>
   <div class="profile-prompt">
     <h3>추가 정보 입력</h3>
-    <p class="hint">처음 로그인하셨네요. 성별/연령을 입력하면 고객님께 맞는 상품 설명을 보여드릴 수 있어요.</p>
-    <GenderAgeForm
+    <p class="hint">처음 로그인하셨네요. 성별/출생년도를 입력하면 고객님께 맞는 상품 설명을 보여드릴 수 있어요.</p>
+    <GenderBirthYearForm
       :initial-gender="session.current?.gender ?? null"
-      :initial-age="session.current?.age ?? null"
+      :initial-birth-year="session.current?.birthYear ?? null"
       @submit="handleSubmit"
     >
       <p v-if="error" class="error">{{ error }}</p>
@@ -38,7 +38,7 @@ async function handleSubmit(payload: { gender: Gender | null; age: number | null
         <button type="submit" :disabled="saving">{{ saving ? '저장 중...' : '저장' }}</button>
         <button type="button" class="skip" :disabled="saving" @click="emit('done')">건너뛰기</button>
       </div>
-    </GenderAgeForm>
+    </GenderBirthYearForm>
   </div>
 </template>
 

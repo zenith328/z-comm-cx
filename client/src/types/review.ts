@@ -30,6 +30,7 @@ export interface Review {
 export interface ReviewCreateRequest {
   productCode: string
   memberId: string
+  memberPhone?: string
   content: string
   rating: number
   hasPhoto: boolean

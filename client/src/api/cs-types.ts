@@ -4,6 +4,8 @@ export interface MemberResponse {
   name: string
   phone: string
   gender: Gender | null
+  birthYear: number | null
+  // 서버가 birthYear로부터 계산해서 내려주는 파생값. 세그먼트 매칭 등 기존 로직은 이 값을 그대로 쓴다.
   age: number | null
   createdAt: string
   updatedAt: string
@@ -18,7 +20,7 @@ export interface MemberProfileUpdateRequest {
   name: string
   phone: string
   gender: Gender | null
-  age: number | null
+  birthYear: number | null
 }
 
 export type CustomerSegment =
@@ -41,6 +43,11 @@ export interface SegmentKeywordRequest {
   keywords: string
 }
 
+export interface SegmentKeywordSuggestionResponse {
+  keywords: string[]
+  reviewCount: number
+}
+
 export interface DescriptionExtractResponse {
   text: string
 }
@@ -59,6 +66,8 @@ export interface ProductDescriptionVariantResponse {
   status: DescriptionVariantStatus
   generatedAt: string | null
   approvedAt: string | null
+  fitScore: number | null
+  fitScoreReason: string | null
 }
 
 export type TicketCategory = 'CANCEL' | 'ADDRESS_CHANGE' | 'RETURN' | 'INQUIRY' | 'OTHER'

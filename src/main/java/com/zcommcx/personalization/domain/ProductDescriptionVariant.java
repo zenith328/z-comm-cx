@@ -44,6 +44,15 @@ public class ProductDescriptionVariant {
     @Column(columnDefinition = "TEXT", nullable = false)
     private String content;
 
+    /**
+     * AI가 생성 직후 스스로 매긴 "운영자 키워드/세그먼트 반영도" 점수(0~100)와 근거.
+     * 관리자가 수동으로 수정(editManually)하면 더 이상 AI 생성물이 아니므로 비워둔다.
+     */
+    private Integer fitScore;
+
+    @Column(columnDefinition = "TEXT")
+    private String fitScoreReason;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 10)
     private DescriptionVariantStatus status;
@@ -56,18 +65,27 @@ public class ProductDescriptionVariant {
     @Column(nullable = false)
     private LocalDateTime updatedAt;
 
-    public ProductDescriptionVariant(Product product, CustomerSegment segment, String content) {
+    public ProductDescriptionVariant(
+            Product product, CustomerSegment segment, String content, Integer fitScore, String fitScoreReason) {
         this.product = product;
         this.segment = segment;
-        applyGenerated(content);
+        applyGenerated(content, fitScore, fitScoreReason);
     }
 
-    public void regenerate(String content) {
-        applyGenerated(content);
+    /** AI (재)생성 결과 반영 — 콘텐츠와 함께 AI 자체 평가 점수/근거도 갱신한다. */
+    public void regenerate(String content, Integer fitScore, String fitScoreReason) {
+        applyGenerated(content, fitScore, fitScoreReason);
     }
 
-    private void applyGenerated(String content) {
+    /** 관리자가 직접 수정 — AI가 매긴 적합도는 더 이상 이 내용을 반영하지 않으므로 비운다. */
+    public void editManually(String content) {
+        applyGenerated(content, null, null);
+    }
+
+    private void applyGenerated(String content, Integer fitScore, String fitScoreReason) {
         this.content = content;
+        this.fitScore = fitScore;
+        this.fitScoreReason = fitScoreReason;
         this.status = DescriptionVariantStatus.DRAFT;
         this.generatedAt = LocalDateTime.now();
         this.approvedAt = null;

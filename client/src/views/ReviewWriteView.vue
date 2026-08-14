@@ -56,6 +56,7 @@ async function onSubmit() {
   const request: ReviewCreateRequest = {
     productCode: product.value.productCode,
     memberId: session.current.name,
+    memberPhone: session.current.phone,
     content: form.content,
     rating: form.rating,
     hasPhoto: form.hasPhoto,

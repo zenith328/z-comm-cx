@@ -1,0 +1,42 @@
+package com.zcommcx.personalization.ai;
+
+import com.zcommcx.personalization.domain.CustomerSegment;
+
+import java.util.List;
+
+final class SegmentKeywordPrompts {
+
+    private SegmentKeywordPrompts() {
+    }
+
+    static String suggestPrompt(CustomerSegment segment, List<String> reviewExcerpts, String existingKeywords) {
+        StringBuilder excerptBlock = new StringBuilder();
+        for (int i = 0; i < reviewExcerpts.size(); i++) {
+            excerptBlock.append(i + 1).append(". ").append(reviewExcerpts.get(i)).append('\n');
+        }
+
+        String existingLine = (existingKeywords == null || existingKeywords.isBlank())
+                ? "(아직 등록된 키워드 없음)"
+                : existingKeywords;
+
+        return """
+                당신은 이커머스 리뷰 데이터를 분석해서, 특정 고객 세그먼트의 상품 상세설명 작성에
+                참고할 키워드를 제안하는 AI 분석가입니다.
+
+                아래는 여러 상품에 대해 "%s" 세그먼트로 확인된 고객들이 실제로 작성한 리뷰 발췌입니다.
+
+                [작성 지침]
+                - 리뷰에서 반복적으로 나타나는 긍정적인 특징/니즈/구매 이유를 근거로 키워드를 제안하세요.
+                - 리뷰에 실제로 나타나지 않은 내용을 추측해서 지어내지 마세요.
+                - 키워드는 짧은 명사구(1~4단어)로, 5~8개 제안하세요.
+                - 이미 등록된 키워드와 중복되는 표현은 되도록 피하고, 새로운 키워드 위주로 제안하세요.
+                  다만 리뷰에서 압도적으로 반복되는 특징이라면 겹쳐도 됩니다.
+                - 리뷰 수가 너무 적거나 내용이 빈약해 의미 있는 특징을 뽑기 어려우면 빈 배열을 반환하세요.
+
+                [기존 등록 키워드] %s
+
+                [리뷰 발췌]
+                %s
+                """.formatted(segment.getLabel(), existingLine, excerptBlock.toString().stripTrailing());
+    }
+}
