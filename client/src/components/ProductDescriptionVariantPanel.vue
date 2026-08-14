@@ -200,6 +200,13 @@ function statusLabel(status: ProductDescriptionVariantResponse['status']): strin
   return '미생성'
 }
 
+/** AI가 생성 직후 스스로 매긴 키워드/세그먼트 반영도 점수를 등급별 색으로 구분해서 보여준다. */
+function fitScoreClass(score: number): string {
+  if (score >= 80) return 'high'
+  if (score >= 50) return 'mid'
+  return 'low'
+}
+
 const isBaseDirty = () => baseDescription.value !== baseDescriptionSaved.value
 
 onMounted(load)
@@ -253,6 +260,9 @@ onMounted(load)
             <div class="variant-row-header">
               <span class="segment-label">{{ row.segmentLabel }}</span>
               <span class="status-badge" :class="row.status.toLowerCase()">{{ statusLabel(row.status) }}</span>
+              <span v-if="row.fitScore !== null" class="fit-score-badge" :class="fitScoreClass(row.fitScore)">
+                AI 적합도 {{ row.fitScore }}점
+              </span>
             </div>
             <template v-if="editingSegment === row.segment">
               <textarea v-model="editDrafts[row.segment]" rows="3" class="edit-textarea"></textarea>
@@ -267,6 +277,7 @@ onMounted(load)
             <template v-else>
               <p v-if="row.content" class="variant-content">{{ row.content }}</p>
               <p v-else class="variant-content empty">아직 생성된 설명이 없습니다.</p>
+              <p v-if="row.fitScoreReason" class="fit-score-reason">AI 평가: {{ row.fitScoreReason }}</p>
               <div class="variant-row-footer">
                 <span v-if="actionErrorSegment === row.segment" class="error">{{ actionErrorMessage }}</span>
                 <button type="button" :disabled="anyBusy" @click="generate(row.segment)">
@@ -298,6 +309,9 @@ onMounted(load)
             <div class="variant-row-header">
               <span class="segment-label">{{ row.segmentLabel }}</span>
               <span class="status-badge" :class="row.status.toLowerCase()">{{ statusLabel(row.status) }}</span>
+              <span v-if="row.fitScore !== null" class="fit-score-badge" :class="fitScoreClass(row.fitScore)">
+                AI 적합도 {{ row.fitScore }}점
+              </span>
             </div>
             <template v-if="editingSegment === row.segment">
               <textarea v-model="editDrafts[row.segment]" rows="3" class="edit-textarea"></textarea>
@@ -312,6 +326,7 @@ onMounted(load)
             <template v-else>
               <p v-if="row.content" class="variant-content">{{ row.content }}</p>
               <p v-else class="variant-content empty">아직 생성된 설명이 없습니다.</p>
+              <p v-if="row.fitScoreReason" class="fit-score-reason">AI 평가: {{ row.fitScoreReason }}</p>
               <div class="variant-row-footer">
                 <span v-if="actionErrorSegment === row.segment" class="error">{{ actionErrorMessage }}</span>
                 <button type="button" :disabled="anyBusy" @click="generate(row.segment)">
@@ -471,6 +486,29 @@ onMounted(load)
 .status-badge.approved {
   background: #d4edda;
   color: #256029;
+}
+.fit-score-badge {
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.fit-score-badge.high {
+  background: #d4edda;
+  color: #256029;
+}
+.fit-score-badge.mid {
+  background: #fff3cd;
+  color: #8a6500;
+}
+.fit-score-badge.low {
+  background: #f8d7da;
+  color: #a80000;
+}
+.fit-score-reason {
+  font-size: 11px;
+  color: #777;
+  font-style: italic;
+  margin: 0 0 8px;
 }
 .variant-content {
   font-size: 12px;

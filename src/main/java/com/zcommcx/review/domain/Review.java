@@ -27,6 +27,14 @@ public class Review {
     @Column(nullable = false)
     private String memberId;
 
+    /**
+     * 로그인 회원(member 테이블, name+phone 복합키)의 전화번호. NATIVE(앱에서 직접 작성) 리뷰만
+     * 로그인 세션에서 채워지고, EXTERNAL(외부 쇼핑몰에서 가져온) 리뷰나 이 필드 도입 이전 레거시
+     * 리뷰는 null이다. AI가 세그먼트(성별×연령)별 키워드를 제안할 때, 이 값으로 Member를 조회해
+     * "이 리뷰를 실제로 어느 세그먼트 고객이 썼는지" 알아내는 용도로만 쓴다.
+     */
+    private String memberPhone;
+
     @Column(nullable = false, columnDefinition = "text")
     private String content;
 
@@ -71,10 +79,11 @@ public class Review {
     private ReviewOrigin origin;
 
     public Review(
-            String productCode, String memberId, String content, int rating, boolean hasPhoto,
+            String productCode, String memberId, String memberPhone, String content, int rating, boolean hasPhoto,
             ReviewOrigin origin) {
         this.productCode = productCode;
         this.memberId = memberId;
+        this.memberPhone = memberPhone;
         this.content = content;
         this.rating = rating;
         this.hasPhoto = hasPhoto;

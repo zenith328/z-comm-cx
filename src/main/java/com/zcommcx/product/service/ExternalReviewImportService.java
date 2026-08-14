@@ -141,7 +141,7 @@ public class ExternalReviewImportService {
             boolean hasPhoto = node.path("reviewImages").isArray() && !node.path("reviewImages").isEmpty();
             String memberId = node.path("memberName").asText("익명");
 
-            requests.add(new ReviewCreateRequest(productCode, memberId, content, rating, hasPhoto));
+            requests.add(new ReviewCreateRequest(productCode, memberId, null, content, rating, hasPhoto));
         }
         return requests;
     }

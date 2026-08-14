@@ -3,6 +3,9 @@ package com.zcommcx.personalization.domain;
 import com.zcommcx.member.domain.Gender;
 import lombok.Getter;
 
+import java.util.Arrays;
+import java.util.Optional;
+
 /**
  * 상품 상세설명을 성향별로 다르게 보여주기 위한 고객 세그먼트.
  * 세그먼트가 늘어날수록 AI 생성 비용/관리 부담이 커지므로, 성별×연령을 3구간(10~20대/30~40대/
@@ -27,5 +30,16 @@ public enum CustomerSegment {
         this.minAge = minAge;
         this.maxAge = maxAge;
         this.label = label;
+    }
+
+    /** 성별+연령이 어느 세그먼트에 해당하는지 찾는다. 둘 중 하나라도 없으면(미입력) 매칭하지 않는다. */
+    public static Optional<CustomerSegment> forGenderAndAge(Gender gender, Integer age) {
+        if (gender == null || age == null) {
+            return Optional.empty();
+        }
+        return Arrays.stream(values())
+                .filter(segment -> segment.gender == gender)
+                .filter(segment -> age >= segment.minAge && (segment.maxAge == null || age <= segment.maxAge))
+                .findFirst();
     }
 }

@@ -5,9 +5,11 @@ import com.zcommcx.personalization.domain.SegmentKeyword;
 import com.zcommcx.personalization.service.SegmentKeywordService;
 import com.zcommcx.personalization.web.dto.SegmentKeywordRequest;
 import com.zcommcx.personalization.web.dto.SegmentKeywordResponse;
+import com.zcommcx.personalization.web.dto.SegmentKeywordSuggestionResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -41,5 +43,14 @@ public class SegmentKeywordController {
     @PutMapping("/{segment}")
     public SegmentKeywordResponse upsert(@PathVariable CustomerSegment segment, @RequestBody SegmentKeywordRequest request) {
         return SegmentKeywordResponse.of(segment, service.upsert(segment, request.keywords()));
+    }
+
+    /**
+     * 이 세그먼트 고객이 쓴 것으로 확인된 리뷰를 AI로 분석해 키워드 후보를 제안한다. 관리자가
+     * 결과를 검토한 뒤 실제 반영 여부는 여전히 PUT /{segment}로 직접 저장해서 결정한다.
+     */
+    @PostMapping("/{segment}/suggest-keywords")
+    public SegmentKeywordSuggestionResponse suggestKeywords(@PathVariable CustomerSegment segment) {
+        return SegmentKeywordSuggestionResponse.of(service.suggestKeywords(segment));
     }
 }

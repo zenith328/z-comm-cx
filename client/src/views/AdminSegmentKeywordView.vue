@@ -1,7 +1,11 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import { fetchSegmentKeywords, updateSegmentKeyword } from '../api/segmentKeywords'
+import '../styles/admin.css'
+import { fetchSegmentKeywords, suggestSegmentKeywords, updateSegmentKeyword } from '../api/segmentKeywords'
 import type { CustomerSegment, SegmentKeywordResponse } from '../api/cs-types'
+import { isQuotaExceededError } from '../utils/apiError'
+
+const MIN_REVIEWS_FOR_SUGGESTION = 3
 
 const rows = ref<SegmentKeywordResponse[]>([])
 const drafts = ref<Record<string, string>>({})
@@ -9,6 +13,10 @@ const loading = ref(false)
 const loadError = ref('')
 const savingSegment = ref<CustomerSegment | null>(null)
 const saveErrorSegment = ref<CustomerSegment | null>(null)
+
+const suggestingSegment = ref<CustomerSegment | null>(null)
+const suggestionError = ref<Record<string, string>>({})
+const suggestedKeywords = ref<Record<string, string[]>>({})
 
 const maleRows = () => rows.value.filter((row) => row.gender === 'MALE')
 const femaleRows = () => rows.value.filter((row) => row.gender === 'FEMALE')
@@ -50,12 +58,55 @@ function formatUpdatedAt(value: string | null): string {
   return value ? value.replace('T', ' ').slice(0, 16) + ' 저장됨' : '미입력'
 }
 
+/**
+ * 이 세그먼트 고객이 쓴 것으로 확인된 리뷰를 AI로 분석해 키워드 후보를 제안받는다. 결과는
+ * 바로 저장되지 않고 화면에 후보로만 표시되며, 관리자가 "+"를 눌러야 입력창에 반영된다.
+ */
+async function suggestKeywords(row: SegmentKeywordResponse) {
+  suggestingSegment.value = row.segment
+  suggestionError.value = { ...suggestionError.value, [row.segment]: '' }
+  suggestedKeywords.value = { ...suggestedKeywords.value, [row.segment]: [] }
+  try {
+    const result = await suggestSegmentKeywords(row.segment)
+    if (result.reviewCount < MIN_REVIEWS_FOR_SUGGESTION) {
+      suggestionError.value[row.segment] =
+        `분석할 리뷰가 부족합니다 (현재 ${result.reviewCount}건, 최소 ${MIN_REVIEWS_FOR_SUGGESTION}건 필요).`
+    } else if (result.keywords.length === 0) {
+      suggestionError.value[row.segment] = `리뷰 ${result.reviewCount}건을 분석했지만 새로 제안할 키워드가 없습니다.`
+    } else {
+      suggestedKeywords.value[row.segment] = result.keywords
+    }
+  } catch (error) {
+    console.error(error)
+    suggestionError.value[row.segment] = isQuotaExceededError(error)
+      ? 'AI 사용량 한도를 초과했습니다. 잠시 후 다시 시도해주세요.'
+      : '키워드 제안에 실패했습니다.'
+  } finally {
+    suggestingSegment.value = null
+  }
+}
+
+/** 후보 키워드 하나를 입력창(쉼표 구분 텍스트)에 중복 없이 추가한다. 저장은 별도로 눌러야 한다. */
+function applySuggestion(row: SegmentKeywordResponse, keyword: string) {
+  const parts = (drafts.value[row.segment] ?? '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
+  if (!parts.includes(keyword)) {
+    parts.push(keyword)
+  }
+  drafts.value[row.segment] = parts.join(', ')
+  suggestedKeywords.value[row.segment] = (suggestedKeywords.value[row.segment] ?? []).filter((k) => k !== keyword)
+}
+
 onMounted(load)
 </script>
 
 <template>
   <div>
     <RouterLink to="/admin/products" class="back-link">← 상품관리로 돌아가기</RouterLink>
+
+    <h2 class="admin-title">성향키워드 관리</h2>
 
     <p class="subtitle">
       성별×연령 세그먼트별로 강조할 키워드/포인트입니다. 상품마다 따로 입력하지 않고 전체 상품에 공통으로
@@ -71,9 +122,30 @@ onMounted(load)
         <div v-for="row in maleRows()" :key="row.segment" class="segment-row">
           <label class="segment-label">{{ row.segmentLabel }}</label>
           <textarea v-model="drafts[row.segment]" rows="2" placeholder="예: 가성비, 활동성, 튼튼함"></textarea>
+          <div v-if="suggestedKeywords[row.segment]?.length" class="suggestion-chips">
+            <span class="suggestion-hint">AI 추천:</span>
+            <button
+              v-for="keyword in suggestedKeywords[row.segment]"
+              :key="keyword"
+              type="button"
+              class="suggestion-chip"
+              @click="applySuggestion(row, keyword)"
+            >
+              + {{ keyword }}
+            </button>
+          </div>
+          <p v-if="suggestionError[row.segment]" class="suggestion-error">{{ suggestionError[row.segment] }}</p>
           <div class="segment-row-footer">
             <span class="status">{{ formatUpdatedAt(row.updatedAt) }}</span>
             <span v-if="saveErrorSegment === row.segment" class="error">저장 실패</span>
+            <button
+              type="button"
+              class="suggest-button"
+              :disabled="suggestingSegment === row.segment"
+              @click="suggestKeywords(row)"
+            >
+              {{ suggestingSegment === row.segment ? '분석 중...' : 'AI 추천 키워드' }}
+            </button>
             <button type="button" :disabled="!isDirty(row) || savingSegment === row.segment" @click="save(row)">
               {{ savingSegment === row.segment ? '저장 중...' : '저장' }}
             </button>
@@ -86,9 +158,30 @@ onMounted(load)
         <div v-for="row in femaleRows()" :key="row.segment" class="segment-row">
           <label class="segment-label">{{ row.segmentLabel }}</label>
           <textarea v-model="drafts[row.segment]" rows="2" placeholder="예: 트렌디함, 디자인, 선물용"></textarea>
+          <div v-if="suggestedKeywords[row.segment]?.length" class="suggestion-chips">
+            <span class="suggestion-hint">AI 추천:</span>
+            <button
+              v-for="keyword in suggestedKeywords[row.segment]"
+              :key="keyword"
+              type="button"
+              class="suggestion-chip"
+              @click="applySuggestion(row, keyword)"
+            >
+              + {{ keyword }}
+            </button>
+          </div>
+          <p v-if="suggestionError[row.segment]" class="suggestion-error">{{ suggestionError[row.segment] }}</p>
           <div class="segment-row-footer">
             <span class="status">{{ formatUpdatedAt(row.updatedAt) }}</span>
             <span v-if="saveErrorSegment === row.segment" class="error">저장 실패</span>
+            <button
+              type="button"
+              class="suggest-button"
+              :disabled="suggestingSegment === row.segment"
+              @click="suggestKeywords(row)"
+            >
+              {{ suggestingSegment === row.segment ? '분석 중...' : 'AI 추천 키워드' }}
+            </button>
             <button type="button" :disabled="!isDirty(row) || savingSegment === row.segment" @click="save(row)">
               {{ savingSegment === row.segment ? '저장 중...' : '저장' }}
             </button>
@@ -177,5 +270,42 @@ onMounted(load)
   background: #ccc;
   border-color: #ccc;
   cursor: default;
+}
+.segment-row-footer .suggest-button {
+  background: #fff;
+  color: #0056b3;
+}
+.segment-row-footer .suggest-button:disabled {
+  color: #999;
+  border-color: #ccc;
+  background: #fff;
+}
+.suggestion-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+}
+.suggestion-hint {
+  font-size: 11px;
+  color: #999;
+}
+.suggestion-chip {
+  padding: 3px 8px;
+  font-size: 11px;
+  border: 1px dashed #0056b3;
+  border-radius: 12px;
+  background: #eef4ff;
+  color: #0056b3;
+  cursor: pointer;
+}
+.suggestion-chip:hover {
+  background: #dceaff;
+}
+.suggestion-error {
+  margin: 2px 0 0;
+  font-size: 11px;
+  color: #a80000;
 }
 </style>

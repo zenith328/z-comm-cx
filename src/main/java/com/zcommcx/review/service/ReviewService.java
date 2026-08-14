@@ -56,6 +56,7 @@ public class ReviewService {
         Review review = new Review(
                 request.productCode(),
                 request.memberId(),
+                request.memberPhone(),
                 request.content(),
                 request.rating(),
                 request.hasPhoto(),

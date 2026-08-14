@@ -41,6 +41,11 @@ export interface SegmentKeywordRequest {
   keywords: string
 }
 
+export interface SegmentKeywordSuggestionResponse {
+  keywords: string[]
+  reviewCount: number
+}
+
 export interface DescriptionExtractResponse {
   text: string
 }
@@ -59,6 +64,8 @@ export interface ProductDescriptionVariantResponse {
   status: DescriptionVariantStatus
   generatedAt: string | null
   approvedAt: string | null
+  fitScore: number | null
+  fitScoreReason: string | null
 }
 
 export type TicketCategory = 'CANCEL' | 'ADDRESS_CHANGE' | 'RETURN' | 'INQUIRY' | 'OTHER'
