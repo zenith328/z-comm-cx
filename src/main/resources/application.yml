@@ -11,6 +11,12 @@ spring:
     driver-class-name: org.postgresql.Driver
     username: ${SPRING_DATASOURCE_USERNAME:zcommcx_app}
     password: ${SPRING_DATASOURCE_PASSWORD:zcommcx_app}
+    hikari:
+      # Supabase Session Pooler(무료 플랜)는 프로젝트 전체 동시 연결을 pool_size=15로 제한한다.
+      # 기본값(인스턴스당 최대 10)을 그대로 두면 배포 중 이전 인스턴스와 겹치는 순간 15를 넘어
+      # "max clients reached" 에러로 기동에 실패할 수 있어 넉넉히 낮춰둔다.
+      maximum-pool-size: 5
+      minimum-idle: 2
   jpa:
     hibernate:
       ddl-auto: update
