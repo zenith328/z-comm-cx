@@ -1,5 +1,7 @@
 package com.zcommcx.review.service;
 
+import com.zcommcx.member.domain.Member;
+import com.zcommcx.member.domain.MemberRepository;
 import com.zcommcx.review.ai.ReviewSummarizer;
 import com.zcommcx.review.ai.ReviewSummaryResult;
 import com.zcommcx.review.domain.Review;
@@ -28,6 +30,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 
 @Slf4j
 @Service
@@ -38,6 +41,7 @@ public class ReviewService {
     private final ReviewSummaryCacheRepository reviewSummaryCacheRepository;
     private final ApplicationEventPublisher eventPublisher;
     private final ReviewSummarizer reviewSummarizer;
+    private final MemberRepository memberRepository;
 
     @Transactional
     public Review createReview(ReviewCreateRequest request) {
@@ -53,10 +57,18 @@ public class ReviewService {
     }
 
     private Review createReview(ReviewCreateRequest request, ReviewOrigin origin) {
+        // 세그먼트 판단에 쓸 성별/연령은 "지금 회원 상태"가 아니라 "작성 시점 회원 상태"를
+        // 스냅샷으로 고정해야 하므로, 저장 시점에 한 번만 조회해서 Review에 함께 박아 넣는다.
+        Optional<Member> member = (request.memberPhone() == null || request.memberPhone().isBlank())
+                ? Optional.empty()
+                : memberRepository.findByNameAndPhone(request.memberId(), request.memberPhone());
+
         Review review = new Review(
                 request.productCode(),
                 request.memberId(),
                 request.memberPhone(),
+                member.map(Member::getGender).orElse(null),
+                member.map(Member::getAge).orElse(null),
                 request.content(),
                 request.rating(),
                 request.hasPhoto(),
