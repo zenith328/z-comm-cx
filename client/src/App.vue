@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import Breadcrumb from './components/Breadcrumb.vue'
+import ColdStartBanner from './components/ColdStartBanner.vue'
 import GoogleSignInButton from './components/GoogleSignInButton.vue'
 import LoginForm from './components/LoginForm.vue'
 import MemberProfilePrompt from './components/MemberProfilePrompt.vue'
@@ -114,6 +115,8 @@ function handleLoginLayerCancel() {
 </script>
 
 <template>
+  <ColdStartBanner />
+
   <main v-if="!siteAuth.checked" class="page site-gate-page">
     <p>불러오는 중...</p>
   </main>

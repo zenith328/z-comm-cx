@@ -3,9 +3,11 @@ import type { Product, ProductCreateRequest } from '../types/product'
 import type { PageResponse } from '../types/page'
 import type { InventoryResponse } from './cs-types'
 import { attachSiteAuthInterceptor } from '../stores/siteAuth'
+import { attachColdStartIndicator } from '../stores/coldStart'
 
 const client = axios.create({ baseURL: '/api' })
 attachSiteAuthInterceptor(client)
+attachColdStartIndicator(client)
 
 export interface FetchProductsParams {
   page: number

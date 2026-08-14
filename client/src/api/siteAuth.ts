@@ -1,6 +1,8 @@
 import axios from 'axios'
+import { attachColdStartIndicator } from '../stores/coldStart'
 
 const client = axios.create({ baseURL: '/api' })
+attachColdStartIndicator(client)
 
 export interface SiteAuthResponse {
   email: string

@@ -2,9 +2,11 @@ import axios from 'axios'
 import type { Review, ReviewClassification, ReviewCreateRequest, ReviewOverrideRequest, ReviewStatus } from '../types/review'
 import type { PageResponse } from '../types/page'
 import { attachSiteAuthInterceptor } from '../stores/siteAuth'
+import { attachColdStartIndicator } from '../stores/coldStart'
 
 const client = axios.create({ baseURL: '/api' })
 attachSiteAuthInterceptor(client)
+attachColdStartIndicator(client)
 
 export interface FetchReviewsParams {
   page: number
