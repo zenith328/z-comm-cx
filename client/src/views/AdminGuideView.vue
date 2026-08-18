@@ -84,6 +84,7 @@ const sections: GuideSection[] = [
   {
     badge: '④ ai-fit-guide',
     title: 'AI 리뷰 기반 개인화 핏 가이드',
+    inProgress: true,
     summary:
       '기존 AI 리뷰 요약봇을 확장해서, 상품별 핏(사이즈감)을 구조화된 카드로 보여줍니다. 리뷰가 충분하면 리뷰 내용을, 부족하면 상품 설명만 근거로 조심스럽게 추정하며, 신발/하의/상의 등 카테고리에 따라 핏 축(어깨·가슴·기장 또는 발볼·사이즈·발등 등)이 다르게 표시됩니다.',
     customerFlow: [
