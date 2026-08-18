@@ -59,7 +59,6 @@ const sections: GuideSection[] = [
   {
     badge: '③ ai-product-personalization',
     title: 'AI 기반 고객 맞춤형 상품 상세설명',
-    inProgress: true,
     summary:
       '고객의 성별·연령 성향(6개 세그먼트)에 맞춰 AI가 상품 상세설명을 다르게 만들어 보여줍니다. 세그먼트별 키워드는 관리자가 입력(리뷰 기반 AI 추천도 참고 가능)하고, AI는 설명을 생성하면서 스스로 적합도까지 평가합니다.',
     customerFlow: [
