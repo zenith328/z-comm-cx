@@ -41,24 +41,37 @@ public class Member {
 
     private Integer birthYear;
 
+    /**
+     * 체형(키/몸무게)은 둘 다 선택 입력이며, "내 체형 맞춤 핏 요약" 기능에서만 쓰인다 — 로그인
+     * 회원이 상품상세에서 자기 체형에 맞는 리뷰만 골라 AI 요약봇에 물어볼 수 있게 자동으로
+     * 질의문을 채워주는 용도. 세그먼트/개인화 매칭에는 관여하지 않는다(그건 성별/연령 몫).
+     */
+    private Integer heightCm;
+
+    private Integer weightKg;
+
     @Column(nullable = false)
     private LocalDateTime createdAt;
 
     @Column(nullable = false)
     private LocalDateTime updatedAt;
 
-    public Member(String name, String phone, Gender gender, Integer birthYear) {
+    public Member(String name, String phone, Gender gender, Integer birthYear, Integer heightCm, Integer weightKg) {
         this.name = name;
         this.phone = phone;
         this.gender = gender;
         this.birthYear = birthYear;
+        this.heightCm = heightCm;
+        this.weightKg = weightKg;
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
     }
 
-    public void updateProfile(Gender gender, Integer birthYear) {
+    public void updateProfile(Gender gender, Integer birthYear, Integer heightCm, Integer weightKg) {
         this.gender = gender;
         this.birthYear = birthYear;
+        this.heightCm = heightCm;
+        this.weightKg = weightKg;
         this.updatedAt = LocalDateTime.now();
     }
 

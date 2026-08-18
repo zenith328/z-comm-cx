@@ -28,6 +28,7 @@ public class MemberController {
     @PutMapping("/profile")
     public MemberResponse updateProfile(@Valid @RequestBody MemberProfileUpdateRequest request) {
         return MemberResponse.from(memberService.updateProfile(
-                request.name(), request.phone(), request.gender(), request.birthYear()));
+                request.name(), request.phone(), request.gender(), request.birthYear(),
+                request.heightCm(), request.weightKg()));
     }
 }

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import GenderBirthYearForm from './GenderBirthYearForm.vue'
+import MemberProfileForm from './MemberProfileForm.vue'
 import { session, updateProfile } from '../stores/session'
 import type { Gender } from '../api/cs-types'
 
@@ -15,11 +15,16 @@ function genderLabel(gender: Gender | null | undefined): string {
   return '선택 안함'
 }
 
-async function handleSubmit(payload: { gender: Gender | null; birthYear: number | null }) {
+async function handleSubmit(payload: {
+  gender: Gender | null
+  birthYear: number | null
+  heightCm: number | null
+  weightKg: number | null
+}) {
   saving.value = true
   error.value = ''
   try {
-    await updateProfile(payload.gender, payload.birthYear)
+    await updateProfile(payload.gender, payload.birthYear, payload.heightCm, payload.weightKg)
     // session.gender/age가 갱신되면 상품상세 등 이를 구독하는 화면이 자동으로 다시 조회한다.
     emit('close')
   } catch (e) {
@@ -43,10 +48,20 @@ async function handleSubmit(payload: { gender: Gender | null; birthYear: number 
       <dd>{{ genderLabel(session.current?.gender) }}</dd>
       <dt>현재 연령</dt>
       <dd>{{ session.current?.age != null ? `${session.current.age}세` : '선택 안함' }}</dd>
+      <dt>현재 체형</dt>
+      <dd>
+        {{
+          session.current?.heightCm != null || session.current?.weightKg != null
+            ? `${session.current?.heightCm ?? '-'}cm / ${session.current?.weightKg ?? '-'}kg`
+            : '선택 안함'
+        }}
+      </dd>
     </dl>
-    <GenderBirthYearForm
+    <MemberProfileForm
       :initial-gender="session.current?.gender ?? null"
       :initial-birth-year="session.current?.birthYear ?? null"
+      :initial-height-cm="session.current?.heightCm ?? null"
+      :initial-weight-kg="session.current?.weightKg ?? null"
       @submit="handleSubmit"
     >
       <p v-if="error" class="error">{{ error }}</p>
@@ -54,7 +69,7 @@ async function handleSubmit(payload: { gender: Gender | null; birthYear: number 
         <button type="submit" :disabled="saving">{{ saving ? '저장 중...' : '저장' }}</button>
         <button type="button" class="close" @click="emit('close')">닫기</button>
       </div>
-    </GenderBirthYearForm>
+    </MemberProfileForm>
   </div>
 </template>
 

@@ -7,6 +7,9 @@ export interface MemberResponse {
   birthYear: number | null
   // 서버가 birthYear로부터 계산해서 내려주는 파생값. 세그먼트 매칭 등 기존 로직은 이 값을 그대로 쓴다.
   age: number | null
+  // "내 체형 맞춤 핏 요약"에서만 쓰인다. 세그먼트/개인화 매칭에는 관여하지 않는다.
+  heightCm: number | null
+  weightKg: number | null
   createdAt: string
   updatedAt: string
 }
@@ -21,6 +24,8 @@ export interface MemberProfileUpdateRequest {
   phone: string
   gender: Gender | null
   birthYear: number | null
+  heightCm: number | null
+  weightKg: number | null
 }
 
 export type CustomerSegment =

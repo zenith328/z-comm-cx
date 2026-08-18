@@ -4,6 +4,7 @@ import com.zcommcx.common.exception.NotFoundException;
 import com.zcommcx.inventory.service.InventoryService;
 import com.zcommcx.product.domain.Product;
 import com.zcommcx.product.domain.ProductRepository;
+import com.zcommcx.review.domain.ProductFitProfileRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -21,6 +22,7 @@ public class ProductService {
     private final ProductRepository productRepository;
     private final ExternalReviewImportService reviewImportService;
     private final InventoryService inventoryService;
+    private final ProductFitProfileRepository productFitProfileRepository;
 
     /**
      * 이미 등록된 상품코드면 최신 정보로 갱신하고, 처음이면 새로 등록한다.
@@ -57,6 +59,7 @@ public class ProductService {
     public Product updateDescription(Long id, String description) {
         Product product = getProduct(id);
         product.updateDescription(description);
+        invalidateFitProfile(product.getProductCode());
         return product;
     }
 
@@ -64,7 +67,16 @@ public class ProductService {
     public Product updateCategory(Long id, String category) {
         Product product = getProduct(id);
         product.updateCategory(category);
+        invalidateFitProfile(product.getProductCode());
         return product;
+    }
+
+    /**
+     * 카테고리/상세설명이 바뀌면 AI 핏 가이드가 이를 다시 근거로 삼아야 하므로 캐시를 지운다.
+     * 다음 조회 시 새 카테고리/설명으로 재생성된다(리뷰가 바뀌었을 때와 동일한 무효화 방식).
+     */
+    private void invalidateFitProfile(String productCode) {
+        productFitProfileRepository.findById(productCode).ifPresent(productFitProfileRepository::delete);
     }
 
     public Page<Product> findAll(int page, int size, String productCode, String brand) {

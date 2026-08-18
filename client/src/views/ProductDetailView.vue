@@ -132,6 +132,7 @@ onUnmounted(() => setBreadcrumbProductName(null))
       <ProductReviewSection
         :product-code="product.productCode"
         :category="product.category"
+        :name="product.name"
         @write-review="goWriteReview"
       />
     </template>

@@ -23,18 +23,19 @@ public class MemberService {
         return memberRepository.findByNameAndPhone(name, phone)
                 .map(member -> new MemberLoginResult(member, false))
                 .orElseGet(() -> new MemberLoginResult(
-                        memberRepository.save(new Member(name, phone, null, null)), true));
+                        memberRepository.save(new Member(name, phone, null, null, null, null)), true));
     }
 
     /**
-     * 성별/출생년도를 갱신한다. 최초 로그인 직후의 추가 입력과, "내 정보"에서의 수정 둘 다 이
-     * 메서드를 쓴다.
+     * 성별/출생년도/체형(키·몸무게)을 갱신한다. 최초 로그인 직후의 추가 입력과, "내 정보"에서의
+     * 수정 둘 다 이 메서드를 쓴다.
      */
     @Transactional
-    public Member updateProfile(String name, String phone, Gender gender, Integer birthYear) {
+    public Member updateProfile(
+            String name, String phone, Gender gender, Integer birthYear, Integer heightCm, Integer weightKg) {
         Member member = memberRepository.findByNameAndPhone(name, phone)
-                .orElseGet(() -> memberRepository.save(new Member(name, phone, null, null)));
-        member.updateProfile(gender, birthYear);
+                .orElseGet(() -> memberRepository.save(new Member(name, phone, null, null, null, null)));
+        member.updateProfile(gender, birthYear, heightCm, weightKg);
         return member;
     }
 }

@@ -14,6 +14,8 @@ public record MemberResponse(
         // 개인화 매칭 등)이 안 바뀌어도 되도록 유지하고, birthYear는 "내 정보 수정" 폼에서
         // 원래 입력값을 그대로 보여주기 위해 추가했다.
         Integer age,
+        Integer heightCm,
+        Integer weightKg,
         LocalDateTime createdAt,
         LocalDateTime updatedAt) {
 
@@ -24,6 +26,8 @@ public record MemberResponse(
                 member.getGender(),
                 member.getBirthYear(),
                 member.getAge(),
+                member.getHeightCm(),
+                member.getWeightKg(),
                 member.getCreatedAt(),
                 member.getUpdatedAt());
     }
