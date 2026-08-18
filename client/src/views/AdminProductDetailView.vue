@@ -3,6 +3,7 @@ import { onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { fetchProduct } from '../api/products'
 import ProductDescriptionVariantPanel from '../components/ProductDescriptionVariantPanel.vue'
+import SyntheticReviewSeedPanel from '../components/SyntheticReviewSeedPanel.vue'
 import type { Product } from '../types/product'
 
 const route = useRoute()
@@ -30,6 +31,9 @@ async function load() {
 }
 
 onMounted(load)
+
+type DetailTab = 'description' | 'fitGuideSeed'
+const activeTab = ref<DetailTab>('description')
 </script>
 
 <template>
@@ -55,7 +59,38 @@ onMounted(load)
         </div>
       </div>
 
-      <ProductDescriptionVariantPanel :product-id="productId" />
+      <div class="product-detail-tabs">
+        <button
+          type="button"
+          class="product-detail-tab"
+          :class="{ active: activeTab === 'description' }"
+          @click="activeTab = 'description'"
+        >
+          상세설명
+        </button>
+        <button
+          type="button"
+          class="product-detail-tab"
+          :class="{ active: activeTab === 'fitGuideSeed' }"
+          @click="activeTab = 'fitGuideSeed'"
+        >
+          AI 핏 가이드용 테스트 리뷰 생성
+        </button>
+      </div>
+
+      <section v-show="activeTab === 'description'" class="tab-panel">
+        <ProductDescriptionVariantPanel :product-id="productId" />
+      </section>
+
+      <section v-show="activeTab === 'fitGuideSeed'" class="tab-panel">
+        <SyntheticReviewSeedPanel
+          :product-code="product.productCode"
+          :product-name="product.name"
+          :brand="product.brand"
+          :category="product.category"
+          :description="product.description"
+        />
+      </section>
     </template>
   </div>
 </template>
@@ -86,8 +121,8 @@ onMounted(load)
   border-bottom: 1px solid #eee;
 }
 .product-header .thumb {
-  width: 80px;
-  height: 80px;
+  width: 200px;
+  height: 200px;
   object-fit: cover;
   border-radius: 6px;
   flex-shrink: 0;
@@ -109,5 +144,32 @@ onMounted(load)
 .product-header-info dd {
   margin: 0;
   color: #333;
+}
+.product-detail-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid #e0e0e0;
+}
+.product-detail-tab {
+  padding: 10px 18px;
+  border: none;
+  background: none;
+  font-size: 14px;
+  color: #666;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+.product-detail-tab:hover {
+  color: #222;
+}
+.product-detail-tab.active {
+  color: #0056b3;
+  font-weight: 600;
+  border-bottom-color: #0056b3;
+}
+.tab-panel {
+  padding-top: 4px;
 }
 </style>

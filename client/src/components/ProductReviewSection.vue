@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { fetchVisibleReviews, summarizeReviews } from '../api/clientReviewApi'
 import BestReviewShortlist from './BestReviewShortlist.vue'
 import ClassificationBadge from './ClassificationBadge.vue'
+import FitProfileCard from './FitProfileCard.vue'
 import Pagination from './Pagination.vue'
 import SentimentBadge from './SentimentBadge.vue'
 import { CLASSIFICATION_LABELS, CLASSIFICATION_OPTIONS } from '../constants/review'
@@ -15,7 +16,7 @@ type SentimentFilter = 'ALL' | ReviewSentiment
 
 const PAGE_SIZE = 10
 
-const props = defineProps<{ productCode: string }>()
+const props = defineProps<{ productCode: string; category: string | null }>()
 defineEmits<{ 'write-review': [] }>()
 
 const reviews = ref<ClientReview[]>([])
@@ -30,12 +31,31 @@ const classificationFilter = ref<ClassificationFilter>('ALL')
 const sentimentFilter = ref<SentimentFilter>('ALL')
 const sortOption = ref<ReviewSortOption>('LATEST')
 
-const EXAMPLE_QUERIES = [
+const BASE_EXAMPLE_QUERIES = [
   { label: '사이즈 팁 요약', query: '사이즈 팁만 요약해줘' },
   { label: '장점 요약', query: '장점만 요약해줘' },
   { label: '단점 요약', query: '단점만 솔직하게 모아줘' },
   { label: '전체 요약', query: '전체적인 내용을 요약해줘' },
 ]
+
+// 키 기반 핏 요약은 상의/하의 같은 의류에만 의미가 있다(신발/가방 등은 키와 사이즈가 상관없음).
+// 카테고리에 아래 키워드가 있을 때만 노출한다 — 카테고리가 비어있으면(아직 안 채워진 상품)
+// 안전하게 숨긴다.
+const CLOTHING_CATEGORY_KEYWORDS = [
+  '의류', '상의', '하의', '아우터', '팬츠', '바지', '스커트', '치마', '숏츠', '쇼츠',
+  '티셔츠', '블라우스', '니트', '자켓', '재킷', '코트', '점퍼', '셔츠', '원피스', '드레스', '가디건',
+]
+const HEIGHT_FIT_EXAMPLE_QUERIES = [
+  { label: '160cm대 핏 요약', query: '키 158~162cm 정도인 고객이 남긴 사이즈/핏 관련 후기만 모아서 요약해줘' },
+  { label: '170cm대 핏 요약', query: '키 168~172cm 정도인 고객이 남긴 사이즈/핏 관련 후기만 모아서 요약해줘' },
+]
+
+const isClothingCategory = computed(
+  () => !!props.category && CLOTHING_CATEGORY_KEYWORDS.some((keyword) => props.category!.includes(keyword)),
+)
+const exampleQueries = computed(() =>
+  isClothingCategory.value ? [...BASE_EXAMPLE_QUERIES, ...HEIGHT_FIT_EXAMPLE_QUERIES] : BASE_EXAMPLE_QUERIES,
+)
 
 const query = ref('')
 const summary = ref('')
@@ -136,7 +156,7 @@ watch(() => props.productCode, loadReviews, { immediate: true })
       </div>
       <div class="summary-examples">
         <button
-          v-for="example in EXAMPLE_QUERIES"
+          v-for="example in exampleQueries"
           :key="example.label"
           type="button"
           class="summary-example"
@@ -152,6 +172,8 @@ watch(() => props.productCode, loadReviews, { immediate: true })
         <span class="summary-meta">(참고한 리뷰 {{ summaryReviewCount }}건)</span>
       </p>
     </section>
+
+    <FitProfileCard :product-code="productCode" />
 
     <BestReviewShortlist :product-code="productCode" />
 

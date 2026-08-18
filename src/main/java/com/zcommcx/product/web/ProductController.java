@@ -7,6 +7,7 @@ import com.zcommcx.inventory.web.dto.InventoryResponse;
 import com.zcommcx.inventory.web.dto.RestockRequest;
 import com.zcommcx.product.domain.Product;
 import com.zcommcx.product.service.ProductService;
+import com.zcommcx.product.web.dto.ProductCategoryUpdateRequest;
 import com.zcommcx.product.web.dto.ProductCreateRequest;
 import com.zcommcx.product.web.dto.ProductDescriptionUpdateRequest;
 import com.zcommcx.product.web.dto.ProductResponse;
@@ -65,6 +66,11 @@ public class ProductController {
     @PutMapping("/{id}/description")
     public ProductResponse updateDescription(@PathVariable Long id, @Valid @RequestBody ProductDescriptionUpdateRequest request) {
         return toResponse(productService.updateDescription(id, request.description()));
+    }
+
+    @PutMapping("/{id}/category")
+    public ProductResponse updateCategory(@PathVariable Long id, @Valid @RequestBody ProductCategoryUpdateRequest request) {
+        return toResponse(productService.updateCategory(id, request.category()));
     }
 
     @GetMapping("/{id}/inventory")

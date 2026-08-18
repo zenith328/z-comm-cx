@@ -48,10 +48,22 @@ public class ProductService {
                 .orElseThrow(() -> new NotFoundException("상품을 찾을 수 없습니다. (id=%d)".formatted(id)));
     }
 
+    public Product getByProductCode(String productCode) {
+        return productRepository.findByProductCode(productCode)
+                .orElseThrow(() -> new NotFoundException("상품을 찾을 수 없습니다. (productCode=%s)".formatted(productCode)));
+    }
+
     @Transactional
     public Product updateDescription(Long id, String description) {
         Product product = getProduct(id);
         product.updateDescription(description);
+        return product;
+    }
+
+    @Transactional
+    public Product updateCategory(Long id, String category) {
+        Product product = getProduct(id);
+        product.updateCategory(category);
         return product;
     }
 

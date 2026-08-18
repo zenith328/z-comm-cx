@@ -8,6 +8,8 @@ export type ReviewSentiment = 'POSITIVE' | 'NEUTRAL' | 'NEGATIVE'
 
 export type ReviewSortOption = 'LATEST' | 'RATING_HIGH' | 'RATING_LOW' | 'POSITIVE_FIRST' | 'NEGATIVE_FIRST'
 
+export type ReviewOrigin = 'NATIVE' | 'EXTERNAL' | 'SYNTHETIC'
+
 export interface Review {
   id: number
   productCode: string
@@ -56,6 +58,30 @@ export interface ClientReview {
 export interface ReviewSummaryResponse {
   summary: string
   reviewCount: number
+}
+
+export type FitLevel = 'TIGHT' | 'TRUE_TO_SIZE' | 'LOOSE' | 'UNKNOWN'
+
+export interface FitProfileResponse {
+  axis1Label: string
+  axis2Label: string
+  axis3Label: string
+  shoulderFit: FitLevel
+  chestFit: FitLevel
+  lengthFit: FitLevel
+  recommendedBodyType: string
+  summary: string
+  basedOnReviewCount: number
+  fromColdStartFallback: boolean
+}
+
+export interface SyntheticReviewSeedRequest {
+  productCode: string
+  productName: string
+  brand: string | null
+  category: string | null
+  description: string | null
+  count: number
 }
 
 export interface BestReviewShortlistEntry {

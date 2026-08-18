@@ -3,11 +3,13 @@ package com.zcommcx.review.web;
 import com.zcommcx.common.web.dto.PageResponse;
 import com.zcommcx.review.domain.Review;
 import com.zcommcx.review.domain.ReviewClassification;
+import com.zcommcx.review.domain.ReviewOrigin;
 import com.zcommcx.review.domain.ReviewStatus;
 import com.zcommcx.review.service.ReviewService;
 import com.zcommcx.review.web.dto.ReviewCreateRequest;
 import com.zcommcx.review.web.dto.ReviewOverrideRequest;
 import com.zcommcx.review.web.dto.ReviewResponse;
+import com.zcommcx.review.web.dto.SyntheticReviewSeedRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -21,6 +23,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/reviews")
@@ -42,8 +46,9 @@ public class ReviewController {
             @RequestParam(required = false) String productCode,
             @RequestParam(required = false) Boolean visible,
             @RequestParam(required = false) ReviewClassification classification,
-            @RequestParam(required = false) ReviewStatus status) {
-        Page<Review> reviews = reviewService.findAll(page, size, productCode, visible, classification, status);
+            @RequestParam(required = false) ReviewStatus status,
+            @RequestParam(required = false) ReviewOrigin origin) {
+        Page<Review> reviews = reviewService.findAll(page, size, productCode, visible, classification, status, origin);
         return PageResponse.from(reviews, ReviewResponse::from);
     }
 
@@ -61,5 +66,14 @@ public class ReviewController {
     @PostMapping("/{id}/reanalyze")
     public ReviewResponse reanalyze(@PathVariable Long id) {
         return ReviewResponse.from(reviewService.reanalyze(id));
+    }
+
+    /**
+     * AI 핏 가이드 프롬프트 튜닝/데모 시연 전용 가상 리뷰를 생성한다(어드민 전용). 실제 고객
+     * 데이터가 아니므로 운영 중인 서비스에서는 신중하게 사용해야 한다.
+     */
+    @PostMapping("/synthetic-seed")
+    public List<ReviewResponse> seedSyntheticReviews(@Valid @RequestBody SyntheticReviewSeedRequest request) {
+        return reviewService.generateSyntheticReviews(request).stream().map(ReviewResponse::from).toList();
     }
 }

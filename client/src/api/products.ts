@@ -36,6 +36,10 @@ export function updateProductDescription(id: number, description: string): Promi
   return client.put<Product>(`/products/${id}/description`, { description }).then((res) => res.data)
 }
 
+export function updateProductCategory(id: number, category: string): Promise<Product> {
+  return client.put<Product>(`/products/${id}/category`, { category }).then((res) => res.data)
+}
+
 export function restockProduct(id: number, quantity: number): Promise<InventoryResponse> {
   return client.post<InventoryResponse>(`/products/${id}/inventory/restock`, { quantity }).then((res) => res.data)
 }

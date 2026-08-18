@@ -5,8 +5,10 @@ import com.zcommcx.review.domain.Review;
 import com.zcommcx.review.domain.ReviewClassification;
 import com.zcommcx.review.domain.ReviewSentiment;
 import com.zcommcx.review.domain.ReviewSortOption;
+import com.zcommcx.review.service.FitProfileService;
 import com.zcommcx.review.service.ReviewService;
 import com.zcommcx.review.web.dto.ClientReviewResponse;
+import com.zcommcx.review.web.dto.FitProfileResponse;
 import com.zcommcx.review.web.dto.ReviewSummaryRequest;
 import com.zcommcx.review.web.dto.ReviewSummaryResponse;
 import jakarta.validation.Valid;
@@ -30,6 +32,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class ClientReviewController {
 
     private final ReviewService reviewService;
+    private final FitProfileService fitProfileService;
 
     @GetMapping
     public PageResponse<ClientReviewResponse> getVisibleReviews(
@@ -49,5 +52,10 @@ public class ClientReviewController {
     public ReviewSummaryResponse summarizeReviews(
             @PathVariable String productCode, @Valid @RequestBody ReviewSummaryRequest request) {
         return ReviewSummaryResponse.from(reviewService.summarizeVisibleReviews(productCode, request.query()));
+    }
+
+    @GetMapping("/fit-profile")
+    public FitProfileResponse getFitProfile(@PathVariable String productCode) {
+        return FitProfileResponse.from(fitProfileService.getOrGenerate(productCode));
     }
 }

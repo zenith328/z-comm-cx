@@ -2,8 +2,11 @@ package com.zcommcx.review.service;
 
 import com.zcommcx.member.domain.Member;
 import com.zcommcx.member.domain.MemberRepository;
+import com.zcommcx.review.ai.GeneratedSyntheticReview;
 import com.zcommcx.review.ai.ReviewSummarizer;
 import com.zcommcx.review.ai.ReviewSummaryResult;
+import com.zcommcx.review.ai.SyntheticReviewGenerator;
+import com.zcommcx.review.domain.ProductFitProfileRepository;
 import com.zcommcx.review.domain.Review;
 import com.zcommcx.review.domain.ReviewClassification;
 import com.zcommcx.review.domain.ReviewOrigin;
@@ -17,6 +20,7 @@ import com.zcommcx.review.domain.ReviewSummaryCacheRepository;
 import com.zcommcx.review.event.ReviewCreatedEvent;
 import com.zcommcx.review.web.dto.ReviewCreateRequest;
 import com.zcommcx.review.web.dto.ReviewOverrideRequest;
+import com.zcommcx.review.web.dto.SyntheticReviewSeedRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -29,6 +33,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -39,8 +44,10 @@ public class ReviewService {
 
     private final ReviewRepository reviewRepository;
     private final ReviewSummaryCacheRepository reviewSummaryCacheRepository;
+    private final ProductFitProfileRepository productFitProfileRepository;
     private final ApplicationEventPublisher eventPublisher;
     private final ReviewSummarizer reviewSummarizer;
+    private final SyntheticReviewGenerator syntheticReviewGenerator;
     private final MemberRepository memberRepository;
 
     @Transactional
@@ -82,9 +89,9 @@ public class ReviewService {
 
     public Page<Review> findAll(
             int page, int size, String productCode, Boolean visible, ReviewClassification classification,
-            ReviewStatus status) {
+            ReviewStatus status, ReviewOrigin origin) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id"));
-        Specification<Review> spec = ReviewSpecifications.filter(productCode, visible, classification, status);
+        Specification<Review> spec = ReviewSpecifications.filter(productCode, visible, classification, status, origin);
         return reviewRepository.findAll(spec, pageable);
     }
 
@@ -170,7 +177,28 @@ public class ReviewService {
         return result;
     }
 
+    /**
+     * 핏 가이드 프롬프트 튜닝/데모 시연 전용 가상 리뷰를 생성해서 저장한다. 별점/작성자만 다를 뿐
+     * 저장·AI 분석·캐시 무효화는 실제 리뷰 등록과 동일한 경로(createReview)를 그대로 탄다 —
+     * 실제 데이터와 구분 없이 취급하기로 했으므로(SYNTHETIC은 나중을 위한 표시용일 뿐).
+     */
+    @Transactional
+    public List<Review> generateSyntheticReviews(SyntheticReviewSeedRequest request) {
+        List<GeneratedSyntheticReview> generated = syntheticReviewGenerator.generate(
+                request.productName(), request.brand(), request.category(), request.description(), request.count());
+
+        List<Review> saved = new ArrayList<>();
+        for (int i = 0; i < generated.size(); i++) {
+            GeneratedSyntheticReview review = generated.get(i);
+            ReviewCreateRequest createRequest = new ReviewCreateRequest(
+                    request.productCode(), "테스트리뷰어" + (i + 1), null, review.content(), review.rating(), false);
+            saved.add(createReview(createRequest, ReviewOrigin.SYNTHETIC));
+        }
+        return saved;
+    }
+
     private void invalidateSummaryCache(String productCode) {
         reviewSummaryCacheRepository.deleteByProductCode(productCode);
+        productFitProfileRepository.findById(productCode).ifPresent(productFitProfileRepository::delete);
     }
 }

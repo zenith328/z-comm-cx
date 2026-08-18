@@ -2,6 +2,7 @@ import axios from 'axios'
 import type {
   ClientBestReviewShortlistEntry,
   ClientReview,
+  FitProfileResponse,
   ReviewClassification,
   ReviewSentiment,
   ReviewSortOption,
@@ -43,4 +44,8 @@ export function fetchBestReviewShortlist(productCode: string): Promise<ClientBes
   return client
     .get<ClientBestReviewShortlistEntry[]>(`/products/${productCode}/best-review-shortlist`)
     .then((res) => res.data)
+}
+
+export function fetchFitProfile(productCode: string): Promise<FitProfileResponse> {
+  return client.get<FitProfileResponse>(`/products/${productCode}/reviews/fit-profile`).then((res) => res.data)
 }

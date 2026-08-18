@@ -129,7 +129,11 @@ onUnmounted(() => setBreadcrumbProductName(null))
         <p class="description-text">{{ description }}</p>
       </section>
 
-      <ProductReviewSection :product-code="product.productCode" @write-review="goWriteReview" />
+      <ProductReviewSection
+        :product-code="product.productCode"
+        :category="product.category"
+        @write-review="goWriteReview"
+      />
     </template>
   </div>
 </template>

@@ -44,6 +44,21 @@ public class ProductInfoScraper {
             brand = textOrNull(productLd.get("brand"), "name");
         }
 
+        // schema.org/Product의 category는 필수 항목이 아니라 사이트마다 있을 수도 없을 수도 있다.
+        // 있으면(예: "아웃도어의류 > 하의 > 하프팬츠") AI가 상품 카테고리를 오판하지 않도록 하는
+        // 확실한 근거가 되므로, 있는 그대로 저장해두고 없으면 null로 둔다(관리자가 직접 입력 가능).
+        String category = null;
+        if (productLd != null && productLd.has("category")) {
+            JsonNode categoryNode = productLd.get("category");
+            category = categoryNode.isTextual() && !categoryNode.asText().isBlank() ? categoryNode.asText() : null;
+        }
+
+        // description도 category와 마찬가지로 있으면 그대로 가져온다(AI 호출 없이 무료).
+        // 사이트가 구조화 데이터를 안 주면 og:description으로, 그것도 없으면 null로 둬서
+        // 관리자가 직접 입력하거나 "URL에서 텍스트 추출"(AI) 기능을 쓰게 한다.
+        String description = textOrNull(productLd, "description");
+        if (description == null) description = ogContent(doc, "og:description");
+
         Long price = null;
         if (productLd != null && productLd.has("offers")) {
             String priceText = textOrNull(productLd.get("offers"), "price");
@@ -72,7 +87,7 @@ public class ProductInfoScraper {
 
         String productCode = extractProductCode(url);
 
-        return new ProductInfo(url, productCode, name.trim(), brand, price, imageUrls);
+        return new ProductInfo(url, productCode, name.trim(), brand, category, description, price, imageUrls);
     }
 
     private JsonNode findProductLd(Document doc) {

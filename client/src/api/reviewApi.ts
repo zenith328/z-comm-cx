@@ -1,5 +1,13 @@
 import axios from 'axios'
-import type { Review, ReviewClassification, ReviewCreateRequest, ReviewOverrideRequest, ReviewStatus } from '../types/review'
+import type {
+  Review,
+  ReviewClassification,
+  ReviewCreateRequest,
+  ReviewOrigin,
+  ReviewOverrideRequest,
+  ReviewStatus,
+  SyntheticReviewSeedRequest,
+} from '../types/review'
 import type { PageResponse } from '../types/page'
 import { attachSiteAuthInterceptor } from '../stores/siteAuth'
 import { attachColdStartIndicator } from '../stores/coldStart'
@@ -15,6 +23,7 @@ export interface FetchReviewsParams {
   visible?: boolean
   classification?: ReviewClassification
   status?: ReviewStatus
+  origin?: ReviewOrigin
 }
 
 export function fetchReviews(params: FetchReviewsParams): Promise<PageResponse<Review>> {
@@ -31,4 +40,9 @@ export function overrideClassification(id: number, request: ReviewOverrideReques
 
 export function reanalyzeReview(id: number): Promise<Review> {
   return client.post<Review>(`/reviews/${id}/reanalyze`).then((res) => res.data)
+}
+
+/** AI 핏 가이드 프롬프트 튜닝/데모 시연 전용 가상 리뷰를 생성한다(어드민 전용). */
+export function seedSyntheticReviews(request: SyntheticReviewSeedRequest): Promise<Review[]> {
+  return client.post<Review[]>('/reviews/synthetic-seed', request).then((res) => res.data)
 }

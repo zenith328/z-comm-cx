@@ -4,6 +4,7 @@ import com.zcommcx.common.exception.AiQuotaExceededException;
 import com.zcommcx.review.ai.ReviewAiClassificationException;
 import com.zcommcx.review.ai.ReviewAiResult;
 import com.zcommcx.review.ai.ReviewClassifier;
+import com.zcommcx.review.domain.ProductFitProfileRepository;
 import com.zcommcx.review.domain.Review;
 import com.zcommcx.review.domain.ReviewRepository;
 import com.zcommcx.review.domain.ReviewStatus;
@@ -23,6 +24,7 @@ public class ReviewAiAnalysisListener {
 
     private final ReviewRepository reviewRepository;
     private final ReviewSummaryCacheRepository reviewSummaryCacheRepository;
+    private final ProductFitProfileRepository productFitProfileRepository;
     private final ReviewClassifier reviewClassifier;
 
     @Async("aiTaskExecutor")
@@ -38,8 +40,9 @@ public class ReviewAiAnalysisListener {
             ReviewAiResult result = reviewClassifier.classify(review);
             applyIfStillPending(event.reviewId(), fresh -> fresh.applyAiResult(
                     result.visible(), result.classification(), result.sentiment(), result.riskScore(), result.reason()));
-            // AI가 공개여부/분류를 확정했으므로, 이 상품의 요약 캐시는 더 이상 최신이 아니다.
+            // AI가 공개여부/분류를 확정했으므로, 이 상품의 요약/핏가이드 캐시는 더 이상 최신이 아니다.
             reviewSummaryCacheRepository.deleteByProductCode(review.getProductCode());
+            productFitProfileRepository.findById(review.getProductCode()).ifPresent(productFitProfileRepository::delete);
         } catch (AiQuotaExceededException e) {
             log.error("리뷰 AI 분석이 Gemini 사용량 한도 초과로 실패했습니다. reviewId={}", event.reviewId(), e);
             applyIfStillPending(event.reviewId(),

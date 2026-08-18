@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { fetchProduct, updateProductDescription } from '../api/products'
+import { fetchProduct, updateProductCategory, updateProductDescription } from '../api/products'
 import {
   approveProductDescriptionVariant,
   deleteProductDescriptionVariant,
@@ -17,6 +17,11 @@ const props = defineProps<{ productId: number }>()
 
 const loading = ref(false)
 const loadError = ref('')
+
+const category = ref('')
+const categorySaved = ref('')
+const savingCategory = ref(false)
+const categorySaveError = ref('')
 
 const baseDescription = ref('')
 const baseDescriptionSaved = ref('')
@@ -60,6 +65,8 @@ async function load() {
       fetchProduct(props.productId),
       fetchProductDescriptionVariants(props.productId),
     ])
+    category.value = product.category ?? ''
+    categorySaved.value = product.category ?? ''
     baseDescription.value = product.description ?? ''
     baseDescriptionSaved.value = product.description ?? ''
     variants.value = variantList
@@ -68,6 +75,20 @@ async function load() {
     loadError.value = '상세설명 정보를 불러오지 못했습니다.'
   } finally {
     loading.value = false
+  }
+}
+
+async function saveCategory() {
+  savingCategory.value = true
+  categorySaveError.value = ''
+  try {
+    const updated = await updateProductCategory(props.productId, category.value)
+    categorySaved.value = updated.category ?? ''
+  } catch (error) {
+    console.error(error)
+    categorySaveError.value = '카테고리 저장에 실패했습니다.'
+  } finally {
+    savingCategory.value = false
   }
 }
 
@@ -208,6 +229,7 @@ function fitScoreClass(score: number): string {
 }
 
 const isBaseDirty = () => baseDescription.value !== baseDescriptionSaved.value
+const isCategoryDirty = () => category.value !== categorySaved.value
 
 onMounted(load)
 </script>
@@ -218,6 +240,22 @@ onMounted(load)
     <p v-if="loadError" class="error">{{ loadError }}</p>
 
     <template v-if="!loading && !loadError">
+      <div class="category-box">
+        <h4>카테고리</h4>
+        <p class="hint">
+          신발/상의/하의/가방 등 상품 종류입니다. 상품 등록 시 원본 사이트에서 자동으로 가져오려
+          시도하지만 못 가져왔거나 틀렸으면 직접 입력하세요. AI가 합성 리뷰·핏 가이드를 만들 때
+          상품 종류를 헷갈리지 않도록 하는 근거로 씁니다.
+        </p>
+        <div class="category-row">
+          <input v-model="category" type="text" placeholder="예: 신발, 상의, 하의, 아우터, 가방" />
+          <button type="button" :disabled="!isCategoryDirty() || savingCategory" @click="saveCategory">
+            {{ savingCategory ? '저장 중...' : '저장' }}
+          </button>
+        </div>
+        <p v-if="categorySaveError" class="error">{{ categorySaveError }}</p>
+      </div>
+
       <div class="base-description">
         <h4>기본 상품 상세설명</h4>
         <div class="image-extract-bar">
@@ -393,6 +431,48 @@ onMounted(load)
   cursor: pointer;
 }
 .generate-all-button:disabled {
+  background: #ccc;
+  border-color: #ccc;
+  cursor: default;
+}
+.category-box {
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #eee;
+}
+.category-box h4 {
+  margin: 0 0 6px;
+  font-size: 13px;
+  color: #444;
+}
+.category-box .hint {
+  margin: 0 0 8px;
+  color: #777;
+  font-size: 12px;
+}
+.category-row {
+  display: flex;
+  gap: 8px;
+}
+.category-row input {
+  flex: 1;
+  padding: 8px 10px;
+  font-size: 13px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+.category-row button {
+  flex-shrink: 0;
+  padding: 8px 16px;
+  border: 1px solid #0056b3;
+  border-radius: 4px;
+  background: #0056b3;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.category-row button:disabled {
   background: #ccc;
   border-color: #ccc;
   cursor: default;

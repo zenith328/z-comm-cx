@@ -16,7 +16,8 @@ public final class ReviewSpecifications {
     }
 
     public static Specification<Review> filter(
-            String productCode, Boolean visible, ReviewClassification classification, ReviewStatus status) {
+            String productCode, Boolean visible, ReviewClassification classification, ReviewStatus status,
+            ReviewOrigin origin) {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
             if (productCode != null && !productCode.isBlank()) {
@@ -30,6 +31,9 @@ public final class ReviewSpecifications {
             }
             if (status != null) {
                 predicates.add(cb.equal(root.get("status"), status));
+            }
+            if (origin != null) {
+                predicates.add(cb.equal(root.get("origin"), origin));
             }
             return cb.and(predicates.toArray(new Predicate[0]));
         };

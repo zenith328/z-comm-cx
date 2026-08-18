@@ -38,6 +38,13 @@ public class Product {
 
     private String brand;
 
+    /**
+     * 상품 카테고리(신발/의류/가방 등). URL 등록 시 원본 사이트의 schema.org category가 있으면
+     * 자동으로 채워지고(사이트마다 제공 여부가 다름), 없거나 틀리면 관리자가 직접 수정한다.
+     * AI가 합성 리뷰/핏 가이드를 생성할 때 상품명만으로 카테고리를 오판하지 않도록 하는 근거로 쓴다.
+     */
+    private String category;
+
     private Long price;
 
     @Column(columnDefinition = "TEXT")
@@ -54,6 +61,11 @@ public class Product {
 
     public Product(ProductInfo info) {
         this.createdAt = LocalDateTime.now();
+        // category/description은 최초 등록 시 스크레이핑 결과로만 채우고, updateFrom(재등록/
+        // 재스크레이핑)에서는 건드리지 않는다 — 관리자가 나중에 고친 값을 재등록할 때마다
+        // 덮어써버리면 안 되기 때문이다.
+        this.category = info.category();
+        this.description = info.description();
         updateFrom(info);
     }
 
@@ -72,5 +84,10 @@ public class Product {
      */
     public void updateDescription(String description) {
         this.description = description;
+    }
+
+    /** 스크레이핑이 카테고리를 못 찾았거나 잘못 판단했을 때 관리자가 직접 고친다. */
+    public void updateCategory(String category) {
+        this.category = category;
     }
 }
