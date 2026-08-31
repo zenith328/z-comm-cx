@@ -32,9 +32,16 @@ const classificationFilter = ref<ClassificationFilter>('ALL')
 const sentimentFilter = ref<SentimentFilter>('ALL')
 const sortOption = ref<ReviewSortOption>('LATEST')
 
+interface ExampleQuery {
+  label: string
+  query: string
+  // "내 체형 맞춤 핏 요약"처럼 로그인 회원 정보로 개인화된 칩인지 표시한다.
+  personalized?: boolean
+}
+
 // 칩으로 바로 보여줄 건 최소한으로 — 나머지(사이즈 팁, 키 구간별 핏)는 선택박스로 옮겨서
 // 한 줄에 칩이 너무 많이 늘어서지 않게 한다.
-const PINNED_EXAMPLE_QUERIES = [
+const PINNED_EXAMPLE_QUERIES: ExampleQuery[] = [
   { label: '장점 요약', query: '장점만 요약해줘' },
   { label: '단점 요약', query: '단점만 솔직하게 모아줘' },
   { label: '전체 요약', query: '전체적인 내용을 요약해줘' },
@@ -74,7 +81,7 @@ function inferProductGender(category: string | null, name: string): 'MALE' | 'FE
 // 맞춤 칩을 하나 더 보여준다 — 프리셋과 똑같이 summarizeReviews를 그대로 재사용할 뿐이라
 // 새 백엔드는 필요 없다. 다만 상품이 특정 성별 대상으로 명시돼 있고 내 성별과 다르면(예: 남성이
 // 여성 블라우스를 보는 경우), "내 체형"이라는 표현 자체가 안 맞으므로 숨긴다.
-const myBodyFitQuery = computed(() => {
+const myBodyFitQuery = computed<ExampleQuery | null>(() => {
   const height = session.current?.heightCm
   const weight = session.current?.weightKg
   const myGender = session.current?.gender
