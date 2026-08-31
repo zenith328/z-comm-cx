@@ -18,9 +18,6 @@ const saveErrorSegment = ref<CustomerSegment | null>(null)
 const suggestingSegment = ref<CustomerSegment | null>(null)
 const suggestionError = ref<Record<string, string>>({})
 const suggestedKeywords = ref<Record<string, string[]>>({})
-// 리뷰가 부족해 AI 제안 자체가 불가능했던 세그먼트 — 대신 인터넷에서 직접 검색해볼 검색어를 보여준다.
-const reviewShortage = ref<Record<string, boolean>>({})
-const copiedSegment = ref<CustomerSegment | null>(null)
 
 const historyModalRow = ref<SegmentKeywordResponse | null>(null)
 
@@ -80,13 +77,11 @@ async function suggestKeywords(row: SegmentKeywordResponse) {
   suggestingSegment.value = row.segment
   suggestionError.value = { ...suggestionError.value, [row.segment]: '' }
   suggestedKeywords.value = { ...suggestedKeywords.value, [row.segment]: [] }
-  reviewShortage.value = { ...reviewShortage.value, [row.segment]: false }
   try {
     const result = await suggestSegmentKeywords(row.segment)
     if (result.reviewCount < MIN_REVIEWS_FOR_SUGGESTION) {
       suggestionError.value[row.segment] =
         `분석할 리뷰가 부족합니다 (현재 ${result.reviewCount}건, 최소 ${MIN_REVIEWS_FOR_SUGGESTION}건 필요).`
-      reviewShortage.value[row.segment] = true
     } else if (result.keywords.length === 0) {
       suggestionError.value[row.segment] = `리뷰 ${result.reviewCount}건을 분석했지만 새로 제안할 키워드가 없습니다.`
     } else {
@@ -115,27 +110,6 @@ function applySuggestion(row: SegmentKeywordResponse, keyword: string) {
   suggestedKeywords.value[row.segment] = (suggestedKeywords.value[row.segment] ?? []).filter((k) => k !== keyword)
 }
 
-/**
- * 리뷰가 부족해 AI 분석이 안 될 때, 관리자가 직접 인터넷에서 검색해볼 검색어를 만들어준다.
- * 유행 스타일명(예: "올드머니룩") 같은 패션 트렌드가 아니라, 실용성/가성비/브랜드 신뢰도/스펙처럼
- * 이 세그먼트가 "구매할 때 중요하게 여기는 요인"을 찾기 위한 검색어다.
- */
-function buildSearchQuery(row: SegmentKeywordResponse): string {
-  return `${row.segmentLabel} 소비자 구매 결정 요인`
-}
-
-async function copySearchQuery(row: SegmentKeywordResponse) {
-  try {
-    await navigator.clipboard.writeText(buildSearchQuery(row))
-    copiedSegment.value = row.segment
-    setTimeout(() => {
-      if (copiedSegment.value === row.segment) copiedSegment.value = null
-    }, 1500)
-  } catch (error) {
-    console.error(error)
-  }
-}
-
 onMounted(load)
 </script>
 
@@ -152,8 +126,7 @@ onMounted(load)
     <p class="hint">
       "AI 추천 키워드" 버튼은 해당 세그먼트 고객이 쓴 리뷰를 AI로 분석해 키워드 후보를 제안합니다(리뷰
       3건 미만이면 분석하지 않음). 후보를 클릭하면 입력창에 추가만 될 뿐 자동으로 저장되지 않으며, 반영하려면
-      "저장" 버튼을 따로 눌러야 합니다. 리뷰가 부족해 분석할 수 없으면, 대신 인터넷에서 검색해볼 수 있는
-      검색어를 보여드리니 복사해서 활용하세요.
+      "저장" 버튼을 따로 눌러야 합니다.
     </p>
 
     <p v-if="loading" class="loading">불러오는 중...</p>
@@ -178,12 +151,6 @@ onMounted(load)
             </button>
           </div>
           <p v-if="suggestionError[row.segment]" class="suggestion-error">{{ suggestionError[row.segment] }}</p>
-          <div v-if="reviewShortage[row.segment]" class="search-hint">
-            <span class="search-query">{{ buildSearchQuery(row) }}</span>
-            <button type="button" class="copy-button" @click="copySearchQuery(row)">
-              {{ copiedSegment === row.segment ? '복사됨' : '복사' }}
-            </button>
-          </div>
           <div class="segment-row-footer">
             <span class="status">{{ formatUpdatedAt(row.updatedAt) }}</span>
             <span v-if="saveErrorSegment === row.segment" class="error">저장 실패</span>
@@ -221,12 +188,6 @@ onMounted(load)
             </button>
           </div>
           <p v-if="suggestionError[row.segment]" class="suggestion-error">{{ suggestionError[row.segment] }}</p>
-          <div v-if="reviewShortage[row.segment]" class="search-hint">
-            <span class="search-query">{{ buildSearchQuery(row) }}</span>
-            <button type="button" class="copy-button" @click="copySearchQuery(row)">
-              {{ copiedSegment === row.segment ? '복사됨' : '복사' }}
-            </button>
-          </div>
           <div class="segment-row-footer">
             <span class="status">{{ formatUpdatedAt(row.updatedAt) }}</span>
             <span v-if="saveErrorSegment === row.segment" class="error">저장 실패</span>
@@ -384,32 +345,5 @@ onMounted(load)
   margin: 2px 0 0;
   font-size: 11px;
   color: #a80000;
-}
-.search-hint {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 2px;
-  padding: 6px 10px;
-  border: 1px dashed #ccc;
-  border-radius: 6px;
-  background: #fafafa;
-}
-.search-query {
-  flex: 1;
-  font-size: 12px;
-  color: #333;
-}
-.copy-button {
-  padding: 3px 10px;
-  font-size: 11px;
-  border: 1px solid #0056b3;
-  border-radius: 4px;
-  background: #fff;
-  color: #0056b3;
-  cursor: pointer;
-}
-.copy-button:hover {
-  background: #eef4ff;
 }
 </style>
