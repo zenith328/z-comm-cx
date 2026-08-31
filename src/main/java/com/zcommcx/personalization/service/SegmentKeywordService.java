@@ -7,6 +7,8 @@ import com.zcommcx.personalization.domain.SegmentKeywordHistory;
 import com.zcommcx.personalization.domain.SegmentKeywordHistoryRepository;
 import com.zcommcx.personalization.domain.SegmentKeywordRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -50,9 +52,9 @@ public class SegmentKeywordService {
         return repository.findById(segment).map(SegmentKeyword::getKeywords).orElse(null);
     }
 
-    /** 이 세그먼트의 키워드 변경 이력을 최신순으로 조회한다. */
-    public List<SegmentKeywordHistory> getHistory(CustomerSegment segment) {
-        return historyRepository.findBySegmentOrderByChangedAtDesc(segment);
+    /** 이 세그먼트의 키워드 변경 이력을 최신순으로 페이지 단위 조회한다. */
+    public Page<SegmentKeywordHistory> getHistory(CustomerSegment segment, int page, int size) {
+        return historyRepository.findBySegmentOrderByChangedAtDesc(segment, PageRequest.of(page, size));
     }
 
     /**

@@ -123,6 +123,11 @@ onMounted(load)
       성별×연령 세그먼트별로 강조할 키워드/포인트입니다. 상품마다 따로 입력하지 않고 전체 상품에 공통으로
       적용되며, 상품상세설명을 AI로 생성할 때 이 키워드를 함께 참고합니다.
     </p>
+    <p class="hint">
+      "AI 추천 키워드" 버튼은 해당 세그먼트 고객이 쓴 리뷰를 AI로 분석해 키워드 후보를 제안합니다(리뷰
+      3건 미만이면 분석하지 않음). 후보를 클릭하면 입력창에 추가만 될 뿐 자동으로 저장되지 않으며, 반영하려면
+      "저장" 버튼을 따로 눌러야 합니다.
+    </p>
 
     <p v-if="loading" class="loading">불러오는 중...</p>
     <p v-if="loadError" class="error">{{ loadError }}</p>
@@ -224,9 +229,14 @@ onMounted(load)
   text-decoration: underline;
 }
 .subtitle {
-  margin: 0 0 20px;
+  margin: 0 0 8px;
   color: #666;
   font-size: 14px;
+}
+.hint {
+  margin: 0 0 20px;
+  color: #999;
+  font-size: 12px;
 }
 .loading,
 .error {

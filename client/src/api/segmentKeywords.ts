@@ -1,11 +1,12 @@
 import { http } from './http'
 import type {
   CustomerSegment,
-  SegmentKeywordHistoryResponse,
+  SegmentKeywordHistoryItem,
   SegmentKeywordRequest,
   SegmentKeywordResponse,
   SegmentKeywordSuggestionResponse,
 } from './cs-types'
+import type { PageResponse } from '../types/page'
 
 export function fetchSegmentKeywords() {
   return http.get<SegmentKeywordResponse[]>('/segment-keywords').then((res) => res.data)
@@ -22,6 +23,8 @@ export function suggestSegmentKeywords(segment: CustomerSegment) {
     .then((res) => res.data)
 }
 
-export function fetchSegmentKeywordHistory(segment: CustomerSegment) {
-  return http.get<SegmentKeywordHistoryResponse[]>(`/segment-keywords/${segment}/history`).then((res) => res.data)
+export function fetchSegmentKeywordHistory(segment: CustomerSegment, page: number, size: number) {
+  return http
+    .get<PageResponse<SegmentKeywordHistoryItem>>(`/segment-keywords/${segment}/history`, { params: { page, size } })
+    .then((res) => res.data)
 }

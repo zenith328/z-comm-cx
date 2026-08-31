@@ -1,10 +1,10 @@
 package com.zcommcx.personalization.domain;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
-
-import java.util.List;
 
 public interface SegmentKeywordHistoryRepository extends JpaRepository<SegmentKeywordHistory, Long> {
 
-    List<SegmentKeywordHistory> findBySegmentOrderByChangedAtDesc(CustomerSegment segment);
+    Page<SegmentKeywordHistory> findBySegmentOrderByChangedAtDesc(CustomerSegment segment, Pageable pageable);
 }

@@ -1,34 +1,52 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { fetchSegmentKeywordHistory } from '../api/segmentKeywords'
-import type { CustomerSegment, SegmentKeywordHistoryResponse } from '../api/cs-types'
+import type { CustomerSegment, SegmentKeywordHistoryItem } from '../api/cs-types'
+import Pagination from './Pagination.vue'
+
+const PAGE_SIZE = 10
 
 const props = defineProps<{ open: boolean; segment: CustomerSegment | null; segmentLabel: string }>()
 const emit = defineEmits<{ close: [] }>()
 
-const items = ref<SegmentKeywordHistoryResponse[]>([])
+const items = ref<SegmentKeywordHistoryItem[]>([])
+const page = ref(0)
+const totalPages = ref(0)
+const totalElements = ref(0)
 const loading = ref(false)
 const error = ref('')
 
-// 열릴 때마다(세그먼트가 바뀌어도) 최신 이력을 새로 불러온다.
+async function load(segment: CustomerSegment, targetPage: number) {
+  loading.value = true
+  error.value = ''
+  try {
+    const result = await fetchSegmentKeywordHistory(segment, targetPage, PAGE_SIZE)
+    items.value = result.content
+    page.value = result.page
+    totalPages.value = result.totalPages
+    totalElements.value = result.totalElements
+  } catch (e) {
+    console.error(e)
+    error.value = '이력을 불러오지 못했습니다.'
+    items.value = []
+  } finally {
+    loading.value = false
+  }
+}
+
+// 열릴 때마다(세그먼트가 바뀌어도) 1페이지부터 최신 이력을 새로 불러온다.
 watch(
   () => [props.open, props.segment],
-  async () => {
+  () => {
     if (!props.open || !props.segment) return
-    loading.value = true
-    error.value = ''
-    items.value = []
-    try {
-      items.value = await fetchSegmentKeywordHistory(props.segment)
-    } catch (e) {
-      console.error(e)
-      error.value = '이력을 불러오지 못했습니다.'
-    } finally {
-      loading.value = false
-    }
+    load(props.segment, 0)
   },
   { immediate: true },
 )
+
+function goToPage(targetPage: number) {
+  if (props.segment) load(props.segment, targetPage)
+}
 
 function formatChangedAt(value: string): string {
   return value.replace('T', ' ').slice(0, 16)
@@ -52,6 +70,13 @@ function formatChangedAt(value: string): string {
             <span class="history-keywords">{{ item.keywords || '(빈 값)' }}</span>
           </li>
         </ul>
+        <Pagination
+          v-if="!loading && !error && totalElements > 0"
+          :page="page"
+          :total-pages="totalPages"
+          :total-elements="totalElements"
+          @change="goToPage"
+        />
       </div>
     </div>
   </div>

@@ -1,5 +1,6 @@
 package com.zcommcx.personalization.web;
 
+import com.zcommcx.common.web.dto.PageResponse;
 import com.zcommcx.personalization.domain.CustomerSegment;
 import com.zcommcx.personalization.domain.SegmentKeyword;
 import com.zcommcx.personalization.service.SegmentKeywordService;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -55,9 +57,12 @@ public class SegmentKeywordController {
         return SegmentKeywordSuggestionResponse.of(service.suggestKeywords(segment));
     }
 
-    /** 이 세그먼트의 키워드가 언제 어떻게 바뀌어 왔는지 최신순으로 반환한다. */
+    /** 이 세그먼트의 키워드가 언제 어떻게 바뀌어 왔는지 최신순으로 페이지 단위 반환한다. */
     @GetMapping("/{segment}/history")
-    public List<SegmentKeywordHistoryResponse> history(@PathVariable CustomerSegment segment) {
-        return service.getHistory(segment).stream().map(SegmentKeywordHistoryResponse::of).toList();
+    public PageResponse<SegmentKeywordHistoryResponse> history(
+            @PathVariable CustomerSegment segment,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return PageResponse.from(service.getHistory(segment, page, size), SegmentKeywordHistoryResponse::of);
     }
 }
