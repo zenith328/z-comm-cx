@@ -62,7 +62,7 @@ public class SegmentKeywordController {
     public PageResponse<SegmentKeywordHistoryResponse> history(
             @PathVariable CustomerSegment segment,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
+            @RequestParam(defaultValue = "5") int size) {
         return PageResponse.from(service.getHistory(segment, page, size), SegmentKeywordHistoryResponse::of);
     }
 }

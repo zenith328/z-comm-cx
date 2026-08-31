@@ -4,7 +4,7 @@ import { fetchSegmentKeywordHistory } from '../api/segmentKeywords'
 import type { CustomerSegment, SegmentKeywordHistoryItem } from '../api/cs-types'
 import Pagination from './Pagination.vue'
 
-const PAGE_SIZE = 10
+const PAGE_SIZE = 5
 
 const props = defineProps<{ open: boolean; segment: CustomerSegment | null; segmentLabel: string }>()
 const emit = defineEmits<{ close: [] }>()
