@@ -115,9 +115,13 @@ function applySuggestion(row: SegmentKeywordResponse, keyword: string) {
   suggestedKeywords.value[row.segment] = (suggestedKeywords.value[row.segment] ?? []).filter((k) => k !== keyword)
 }
 
-/** 리뷰가 부족해 AI 분석이 안 될 때, 관리자가 직접 인터넷에서 검색해볼 검색어를 만들어준다. */
+/**
+ * 리뷰가 부족해 AI 분석이 안 될 때, 관리자가 직접 인터넷에서 검색해볼 검색어를 만들어준다.
+ * 유행 스타일명(예: "올드머니룩") 같은 패션 트렌드가 아니라, 실용성/가성비/브랜드 신뢰도/스펙처럼
+ * 이 세그먼트가 "구매할 때 중요하게 여기는 요인"을 찾기 위한 검색어다.
+ */
 function buildSearchQuery(row: SegmentKeywordResponse): string {
-  return `${row.segmentLabel} 패션 트렌드 키워드`
+  return `${row.segmentLabel} 소비자 구매 결정 요인`
 }
 
 async function copySearchQuery(row: SegmentKeywordResponse) {
