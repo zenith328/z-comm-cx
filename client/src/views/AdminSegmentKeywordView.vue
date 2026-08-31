@@ -4,6 +4,7 @@ import '../styles/admin.css'
 import { fetchSegmentKeywords, suggestSegmentKeywords, updateSegmentKeyword } from '../api/segmentKeywords'
 import type { CustomerSegment, SegmentKeywordResponse } from '../api/cs-types'
 import { isQuotaExceededError } from '../utils/apiError'
+import SegmentKeywordHistoryModal from '../components/SegmentKeywordHistoryModal.vue'
 
 const MIN_REVIEWS_FOR_SUGGESTION = 3
 
@@ -17,6 +18,16 @@ const saveErrorSegment = ref<CustomerSegment | null>(null)
 const suggestingSegment = ref<CustomerSegment | null>(null)
 const suggestionError = ref<Record<string, string>>({})
 const suggestedKeywords = ref<Record<string, string[]>>({})
+
+const historyModalRow = ref<SegmentKeywordResponse | null>(null)
+
+function openHistory(row: SegmentKeywordResponse) {
+  historyModalRow.value = row
+}
+
+function closeHistory() {
+  historyModalRow.value = null
+}
 
 const maleRows = () => rows.value.filter((row) => row.gender === 'MALE')
 const femaleRows = () => rows.value.filter((row) => row.gender === 'FEMALE')
@@ -149,6 +160,7 @@ onMounted(load)
             <button type="button" :disabled="!isDirty(row) || savingSegment === row.segment" @click="save(row)">
               {{ savingSegment === row.segment ? '저장 중...' : '저장' }}
             </button>
+            <button type="button" class="history-button" @click="openHistory(row)">이력보기</button>
           </div>
         </div>
       </div>
@@ -185,10 +197,18 @@ onMounted(load)
             <button type="button" :disabled="!isDirty(row) || savingSegment === row.segment" @click="save(row)">
               {{ savingSegment === row.segment ? '저장 중...' : '저장' }}
             </button>
+            <button type="button" class="history-button" @click="openHistory(row)">이력보기</button>
           </div>
         </div>
       </div>
     </div>
+
+    <SegmentKeywordHistoryModal
+      :open="historyModalRow !== null"
+      :segment="historyModalRow?.segment ?? null"
+      :segment-label="historyModalRow?.segmentLabel ?? ''"
+      @close="closeHistory"
+    />
   </div>
 </template>
 
@@ -279,6 +299,14 @@ onMounted(load)
   color: #999;
   border-color: #ccc;
   background: #fff;
+}
+.segment-row-footer .history-button {
+  background: #fff;
+  color: #555;
+  border-color: #ccc;
+}
+.segment-row-footer .history-button:hover {
+  background: #f5f5f5;
 }
 .suggestion-chips {
   display: flex;

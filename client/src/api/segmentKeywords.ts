@@ -1,6 +1,7 @@
 import { http } from './http'
 import type {
   CustomerSegment,
+  SegmentKeywordHistoryResponse,
   SegmentKeywordRequest,
   SegmentKeywordResponse,
   SegmentKeywordSuggestionResponse,
@@ -19,4 +20,8 @@ export function suggestSegmentKeywords(segment: CustomerSegment) {
   return http
     .post<SegmentKeywordSuggestionResponse>(`/segment-keywords/${segment}/suggest-keywords`)
     .then((res) => res.data)
+}
+
+export function fetchSegmentKeywordHistory(segment: CustomerSegment) {
+  return http.get<SegmentKeywordHistoryResponse[]>(`/segment-keywords/${segment}/history`).then((res) => res.data)
 }

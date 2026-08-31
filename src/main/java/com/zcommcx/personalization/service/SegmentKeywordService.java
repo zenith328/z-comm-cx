@@ -3,6 +3,8 @@ package com.zcommcx.personalization.service;
 import com.zcommcx.personalization.ai.SegmentKeywordSuggester;
 import com.zcommcx.personalization.domain.CustomerSegment;
 import com.zcommcx.personalization.domain.SegmentKeyword;
+import com.zcommcx.personalization.domain.SegmentKeywordHistory;
+import com.zcommcx.personalization.domain.SegmentKeywordHistoryRepository;
 import com.zcommcx.personalization.domain.SegmentKeywordRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -20,6 +22,7 @@ public class SegmentKeywordService {
     private static final int MAX_REVIEW_EXCERPTS = 30;
 
     private final SegmentKeywordRepository repository;
+    private final SegmentKeywordHistoryRepository historyRepository;
     private final SegmentReviewInsightService reviewInsightService;
     private final SegmentKeywordSuggester keywordSuggester;
 
@@ -27,18 +30,29 @@ public class SegmentKeywordService {
         return repository.findAll();
     }
 
+    /**
+     * 현재 값(segment_keyword)을 갱신하는 것과 별개로, 저장 시점의 스냅샷을 이력 테이블에도
+     * 남긴다 — "언제 어떤 키워드였는지"를 나중에 세그먼트별로 조회하기 위함이다.
+     */
     @Transactional
     public SegmentKeyword upsert(CustomerSegment segment, String keywords) {
-        return repository.findById(segment)
+        SegmentKeyword saved = repository.findById(segment)
                 .map(existing -> {
                     existing.updateKeywords(keywords);
                     return existing;
                 })
                 .orElseGet(() -> repository.save(new SegmentKeyword(segment, keywords)));
+        historyRepository.save(new SegmentKeywordHistory(segment, keywords));
+        return saved;
     }
 
     public String getKeywords(CustomerSegment segment) {
         return repository.findById(segment).map(SegmentKeyword::getKeywords).orElse(null);
+    }
+
+    /** 이 세그먼트의 키워드 변경 이력을 최신순으로 조회한다. */
+    public List<SegmentKeywordHistory> getHistory(CustomerSegment segment) {
+        return historyRepository.findBySegmentOrderByChangedAtDesc(segment);
     }
 
     /**

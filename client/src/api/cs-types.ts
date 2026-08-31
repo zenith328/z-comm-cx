@@ -53,6 +53,11 @@ export interface SegmentKeywordSuggestionResponse {
   reviewCount: number
 }
 
+export interface SegmentKeywordHistoryResponse {
+  keywords: string | null
+  changedAt: string
+}
+
 export interface DescriptionExtractResponse {
   text: string
 }

@@ -3,6 +3,7 @@ package com.zcommcx.personalization.web;
 import com.zcommcx.personalization.domain.CustomerSegment;
 import com.zcommcx.personalization.domain.SegmentKeyword;
 import com.zcommcx.personalization.service.SegmentKeywordService;
+import com.zcommcx.personalization.web.dto.SegmentKeywordHistoryResponse;
 import com.zcommcx.personalization.web.dto.SegmentKeywordRequest;
 import com.zcommcx.personalization.web.dto.SegmentKeywordResponse;
 import com.zcommcx.personalization.web.dto.SegmentKeywordSuggestionResponse;
@@ -52,5 +53,11 @@ public class SegmentKeywordController {
     @PostMapping("/{segment}/suggest-keywords")
     public SegmentKeywordSuggestionResponse suggestKeywords(@PathVariable CustomerSegment segment) {
         return SegmentKeywordSuggestionResponse.of(service.suggestKeywords(segment));
+    }
+
+    /** 이 세그먼트의 키워드가 언제 어떻게 바뀌어 왔는지 최신순으로 반환한다. */
+    @GetMapping("/{segment}/history")
+    public List<SegmentKeywordHistoryResponse> history(@PathVariable CustomerSegment segment) {
+        return service.getHistory(segment).stream().map(SegmentKeywordHistoryResponse::of).toList();
     }
 }
