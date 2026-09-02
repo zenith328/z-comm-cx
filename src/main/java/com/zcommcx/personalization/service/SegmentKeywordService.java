@@ -1,5 +1,6 @@
 package com.zcommcx.personalization.service;
 
+import com.zcommcx.personalization.ai.SegmentKeywordFallbackSuggestion;
 import com.zcommcx.personalization.ai.SegmentKeywordSuggester;
 import com.zcommcx.personalization.domain.CustomerSegment;
 import com.zcommcx.personalization.domain.SegmentKeyword;
@@ -59,10 +60,11 @@ public class SegmentKeywordService {
 
     /**
      * 이 세그먼트 고객이 쓴 것으로 확인된 리뷰를 모아 AI에게 키워드 후보를 제안받는다. 리뷰가
-     * 너무 적으면(MIN_REVIEWS_FOR_SUGGESTION 미만) AI를 호출하지 않고 빈 결과를 반환한다 —
-     * 호출자(컨트롤러/화면)는 reviewCount로 "리뷰 부족" 상황과 "리뷰는 있는데 제안 없음"을 구분한다.
+     * 너무 적으면(MIN_REVIEWS_FOR_SUGGESTION 미만) 리뷰 기반 분석 대신 AI의 일반 지식으로
+     * 키워드/검색어를 대신 제안한다(fallback=true) — 호출자(컨트롤러/화면)는 fallback 플래그로
+     * "리뷰 기반 추천"과 "일반 지식 기반 참고용 추천"을 구분해서 표시해야 한다.
      *
-     * <p>클래스 레벨 readOnly 트랜잭션을 여기서는 반드시 오버라이드해야 한다 — keywordSuggester.suggest()가
+     * <p>클래스 레벨 readOnly 트랜잭션을 여기서는 반드시 오버라이드해야 한다 — keywordSuggester 호출이
      * 내부적으로 GeminiApiUsageService.recordRequest()를 통해 사용량을 DB에 기록(INSERT)하는데,
      * readOnly 트랜잭션 안에서는 이 INSERT가 거부되어(PostgreSQL: "cannot execute INSERT in a
      * read-only transaction") 전체 요청이 UnexpectedRollbackException으로 실패한다.
@@ -71,10 +73,11 @@ public class SegmentKeywordService {
     public SegmentKeywordSuggestion suggestKeywords(CustomerSegment segment) {
         List<String> excerpts = reviewInsightService.collectReviewExcerpts(segment, MAX_REVIEW_EXCERPTS);
         if (excerpts.size() < MIN_REVIEWS_FOR_SUGGESTION) {
-            return new SegmentKeywordSuggestion(List.of(), excerpts.size());
+            SegmentKeywordFallbackSuggestion fallback = keywordSuggester.suggestFallback(segment, getKeywords(segment));
+            return new SegmentKeywordSuggestion(fallback.keywords(), excerpts.size(), true, fallback.searchQuery());
         }
 
         List<String> suggested = keywordSuggester.suggest(segment, excerpts, getKeywords(segment));
-        return new SegmentKeywordSuggestion(suggested, excerpts.size());
+        return new SegmentKeywordSuggestion(suggested, excerpts.size(), false, null);
     }
 }

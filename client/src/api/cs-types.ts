@@ -51,6 +51,9 @@ export interface SegmentKeywordRequest {
 export interface SegmentKeywordSuggestionResponse {
   keywords: string[]
   reviewCount: number
+  // true면 리뷰가 부족해서 AI 일반 지식으로 대신 제안한 참고용 결과 (searchQuery도 이때만 값이 있음).
+  fallback: boolean
+  searchQuery: string | null
 }
 
 export interface SegmentKeywordHistoryItem {

@@ -6,8 +6,6 @@ import type { CustomerSegment, SegmentKeywordResponse } from '../api/cs-types'
 import { isQuotaExceededError } from '../utils/apiError'
 import SegmentKeywordHistoryModal from '../components/SegmentKeywordHistoryModal.vue'
 
-const MIN_REVIEWS_FOR_SUGGESTION = 3
-
 const rows = ref<SegmentKeywordResponse[]>([])
 const drafts = ref<Record<string, string>>({})
 const loading = ref(false)
@@ -18,6 +16,10 @@ const saveErrorSegment = ref<CustomerSegment | null>(null)
 const suggestingSegment = ref<CustomerSegment | null>(null)
 const suggestionError = ref<Record<string, string>>({})
 const suggestedKeywords = ref<Record<string, string[]>>({})
+// true면 리뷰가 부족해서 AI 일반 지식으로 대신 제안한 참고용 결과다(리뷰 기반 추천과 구분 표시).
+const fallbackActive = ref<Record<string, boolean>>({})
+const searchQueryText = ref<Record<string, string>>({})
+const copiedSegment = ref<CustomerSegment | null>(null)
 
 const historyModalRow = ref<SegmentKeywordResponse | null>(null)
 
@@ -72,16 +74,27 @@ function formatUpdatedAt(value: string | null): string {
 /**
  * 이 세그먼트 고객이 쓴 것으로 확인된 리뷰를 AI로 분석해 키워드 후보를 제안받는다. 결과는
  * 바로 저장되지 않고 화면에 후보로만 표시되며, 관리자가 "+"를 눌러야 입력창에 반영된다.
+ *
+ * 리뷰가 부족하면(fallback=true) 리뷰 기반 분석 대신 AI 일반 지식 기반 키워드 후보 +
+ * 관리자가 직접 검색해볼 검색어를 함께 받는다. 둘 다 실제 리뷰 데이터가 아닌 참고용이다.
  */
 async function suggestKeywords(row: SegmentKeywordResponse) {
   suggestingSegment.value = row.segment
   suggestionError.value = { ...suggestionError.value, [row.segment]: '' }
   suggestedKeywords.value = { ...suggestedKeywords.value, [row.segment]: [] }
+  fallbackActive.value = { ...fallbackActive.value, [row.segment]: false }
+  searchQueryText.value = { ...searchQueryText.value, [row.segment]: '' }
   try {
     const result = await suggestSegmentKeywords(row.segment)
-    if (result.reviewCount < MIN_REVIEWS_FOR_SUGGESTION) {
-      suggestionError.value[row.segment] =
-        `분석할 리뷰가 부족합니다 (현재 ${result.reviewCount}건, 최소 ${MIN_REVIEWS_FOR_SUGGESTION}건 필요).`
+    if (result.fallback) {
+      fallbackActive.value[row.segment] = true
+      searchQueryText.value[row.segment] = result.searchQuery ?? ''
+      if (result.keywords.length > 0) {
+        suggestedKeywords.value[row.segment] = result.keywords
+      } else {
+        suggestionError.value[row.segment] =
+          `분석할 리뷰가 부족합니다 (현재 ${result.reviewCount}건). 아래 검색어로 직접 찾아보세요.`
+      }
     } else if (result.keywords.length === 0) {
       suggestionError.value[row.segment] = `리뷰 ${result.reviewCount}건을 분석했지만 새로 제안할 키워드가 없습니다.`
     } else {
@@ -94,6 +107,20 @@ async function suggestKeywords(row: SegmentKeywordResponse) {
       : '키워드 제안에 실패했습니다.'
   } finally {
     suggestingSegment.value = null
+  }
+}
+
+async function copySearchQuery(row: SegmentKeywordResponse) {
+  const text = searchQueryText.value[row.segment]
+  if (!text) return
+  try {
+    await navigator.clipboard.writeText(text)
+    copiedSegment.value = row.segment
+    setTimeout(() => {
+      if (copiedSegment.value === row.segment) copiedSegment.value = null
+    }, 1500)
+  } catch (error) {
+    console.error(error)
   }
 }
 
@@ -124,9 +151,10 @@ onMounted(load)
       적용되며, 상품상세설명을 AI로 생성할 때 이 키워드를 함께 참고합니다.
     </p>
     <p class="hint">
-      "AI 추천 키워드" 버튼은 해당 세그먼트 고객이 쓴 리뷰를 AI로 분석해 키워드 후보를 제안합니다(리뷰
-      3건 미만이면 분석하지 않음). 후보를 클릭하면 입력창에 추가만 될 뿐 자동으로 저장되지 않으며, 반영하려면
-      "저장" 버튼을 따로 눌러야 합니다.
+      "AI 추천 키워드" 버튼은 해당 세그먼트 고객이 쓴 리뷰를 AI로 분석해 키워드 후보를 제안합니다. 후보를
+      클릭하면 입력창에 추가만 될 뿐 자동으로 저장되지 않으며, 반영하려면 "저장" 버튼을 따로 눌러야 합니다.
+      리뷰가 3건 미만이면 리뷰 대신 AI의 일반 지식으로 키워드 후보와 검색어를 대신 제안합니다 — 이 경우
+      실제 리뷰 데이터에 근거한 게 아니므로 참고용으로만 활용하세요.
     </p>
 
     <p v-if="loading" class="loading">불러오는 중...</p>
@@ -139,7 +167,7 @@ onMounted(load)
           <label class="segment-label">{{ row.segmentLabel }}</label>
           <textarea v-model="drafts[row.segment]" rows="2" placeholder="예: 가성비, 활동성, 튼튼함"></textarea>
           <div v-if="suggestedKeywords[row.segment]?.length" class="suggestion-chips">
-            <span class="suggestion-hint">AI 추천:</span>
+            <span class="suggestion-hint">{{ fallbackActive[row.segment] ? 'AI 추천(일반 지식, 참고용):' : 'AI 추천:' }}</span>
             <button
               v-for="keyword in suggestedKeywords[row.segment]"
               :key="keyword"
@@ -151,6 +179,12 @@ onMounted(load)
             </button>
           </div>
           <p v-if="suggestionError[row.segment]" class="suggestion-error">{{ suggestionError[row.segment] }}</p>
+          <div v-if="searchQueryText[row.segment]" class="search-hint">
+            <span class="search-query">{{ searchQueryText[row.segment] }}</span>
+            <button type="button" class="copy-button" @click="copySearchQuery(row)">
+              {{ copiedSegment === row.segment ? '복사됨' : '복사' }}
+            </button>
+          </div>
           <div class="segment-row-footer">
             <span class="status">{{ formatUpdatedAt(row.updatedAt) }}</span>
             <span v-if="saveErrorSegment === row.segment" class="error">저장 실패</span>
@@ -176,7 +210,7 @@ onMounted(load)
           <label class="segment-label">{{ row.segmentLabel }}</label>
           <textarea v-model="drafts[row.segment]" rows="2" placeholder="예: 트렌디함, 디자인, 선물용"></textarea>
           <div v-if="suggestedKeywords[row.segment]?.length" class="suggestion-chips">
-            <span class="suggestion-hint">AI 추천:</span>
+            <span class="suggestion-hint">{{ fallbackActive[row.segment] ? 'AI 추천(일반 지식, 참고용):' : 'AI 추천:' }}</span>
             <button
               v-for="keyword in suggestedKeywords[row.segment]"
               :key="keyword"
@@ -188,6 +222,12 @@ onMounted(load)
             </button>
           </div>
           <p v-if="suggestionError[row.segment]" class="suggestion-error">{{ suggestionError[row.segment] }}</p>
+          <div v-if="searchQueryText[row.segment]" class="search-hint">
+            <span class="search-query">{{ searchQueryText[row.segment] }}</span>
+            <button type="button" class="copy-button" @click="copySearchQuery(row)">
+              {{ copiedSegment === row.segment ? '복사됨' : '복사' }}
+            </button>
+          </div>
           <div class="segment-row-footer">
             <span class="status">{{ formatUpdatedAt(row.updatedAt) }}</span>
             <span v-if="saveErrorSegment === row.segment" class="error">저장 실패</span>
@@ -345,5 +385,32 @@ onMounted(load)
   margin: 2px 0 0;
   font-size: 11px;
   color: #a80000;
+}
+.search-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 2px;
+  padding: 6px 10px;
+  border: 1px dashed #ccc;
+  border-radius: 6px;
+  background: #fafafa;
+}
+.search-query {
+  flex: 1;
+  font-size: 12px;
+  color: #333;
+}
+.copy-button {
+  padding: 3px 10px;
+  font-size: 11px;
+  border: 1px solid #0056b3;
+  border-radius: 4px;
+  background: #fff;
+  color: #0056b3;
+  cursor: pointer;
+}
+.copy-button:hover {
+  background: #eef4ff;
 }
 </style>
