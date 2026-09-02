@@ -61,7 +61,13 @@ public class SegmentKeywordService {
      * 이 세그먼트 고객이 쓴 것으로 확인된 리뷰를 모아 AI에게 키워드 후보를 제안받는다. 리뷰가
      * 너무 적으면(MIN_REVIEWS_FOR_SUGGESTION 미만) AI를 호출하지 않고 빈 결과를 반환한다 —
      * 호출자(컨트롤러/화면)는 reviewCount로 "리뷰 부족" 상황과 "리뷰는 있는데 제안 없음"을 구분한다.
+     *
+     * <p>클래스 레벨 readOnly 트랜잭션을 여기서는 반드시 오버라이드해야 한다 — keywordSuggester.suggest()가
+     * 내부적으로 GeminiApiUsageService.recordRequest()를 통해 사용량을 DB에 기록(INSERT)하는데,
+     * readOnly 트랜잭션 안에서는 이 INSERT가 거부되어(PostgreSQL: "cannot execute INSERT in a
+     * read-only transaction") 전체 요청이 UnexpectedRollbackException으로 실패한다.
      */
+    @Transactional
     public SegmentKeywordSuggestion suggestKeywords(CustomerSegment segment) {
         List<String> excerpts = reviewInsightService.collectReviewExcerpts(segment, MAX_REVIEW_EXCERPTS);
         if (excerpts.size() < MIN_REVIEWS_FOR_SUGGESTION) {
