@@ -143,9 +143,9 @@ onMounted(load)
     <p class="hint">
       "AI 추천 키워드" 버튼은 해당 세그먼트 고객이 쓴 리뷰를 AI로 분석해 키워드 후보를 제안합니다. 후보를
       클릭하면 입력창에 추가만 될 뿐 자동으로 저장되지 않으며, 반영하려면 "저장" 버튼을 따로 눌러야 합니다.
-      리뷰가 3건 미만이면 리뷰 대신 AI의 일반 지식 기반 키워드와, ChatGPT/Gemini 같은 다른 AI 챗봇에
-      붙여넣어 물어볼 수 있는 프롬프트를 함께 제안합니다 — 이 경우 실제 리뷰 데이터에 근거한 게
-      아니므로 참고용으로만 활용하세요.
+      리뷰가 3건 미만이면 리뷰 대신 AI의 일반 지식 기반 키워드를 참고용으로 제안합니다(실제 리뷰
+      데이터에 근거한 게 아님). "AI 프롬프트"는 리뷰 충분 여부와 무관하게 항상 제공되며, ChatGPT/Gemini
+      같은 다른 AI 챗봇에 그대로 붙여넣어 다시 물어볼 때 씁니다.
     </p>
 
     <p v-if="loading" class="loading">불러오는 중...</p>
@@ -176,30 +176,28 @@ onMounted(load)
               </template>
               <span v-else class="suggestion-note">제안할 키워드 없음</span>
             </div>
-            <template v-if="reviewCounts[row.segment] < 3">
-              <div class="suggestion-row">
-                <span class="suggestion-hint">AI 추천(일반지식):</span>
-                <template v-if="generalSuggestions[row.segment]?.length">
-                  <button
-                    v-for="keyword in generalSuggestions[row.segment]"
-                    :key="keyword"
-                    type="button"
-                    class="suggestion-chip"
-                    @click="applySuggestion(row, keyword)"
-                  >
-                    + {{ keyword }}
-                  </button>
-                </template>
-                <span v-else class="suggestion-note">제안 없음</span>
-              </div>
-              <div class="suggestion-row prompt-box">
-                <span class="suggestion-hint">AI 프롬프트:</span>
-                <span class="prompt-text">{{ promptText[row.segment] }}</span>
-                <button type="button" class="copy-button" @click="copyPrompt(row)">
-                  {{ copiedSegment === row.segment ? '복사됨' : '복사' }}
+            <div v-if="reviewCounts[row.segment] < 3" class="suggestion-row">
+              <span class="suggestion-hint">AI 추천(일반지식):</span>
+              <template v-if="generalSuggestions[row.segment]?.length">
+                <button
+                  v-for="keyword in generalSuggestions[row.segment]"
+                  :key="keyword"
+                  type="button"
+                  class="suggestion-chip"
+                  @click="applySuggestion(row, keyword)"
+                >
+                  + {{ keyword }}
                 </button>
-              </div>
-            </template>
+              </template>
+              <span v-else class="suggestion-note">제안 없음</span>
+            </div>
+            <div class="suggestion-row prompt-box">
+              <span class="suggestion-hint">AI 프롬프트:</span>
+              <span class="prompt-text">{{ promptText[row.segment] }}</span>
+              <button type="button" class="copy-button" @click="copyPrompt(row)">
+                {{ copiedSegment === row.segment ? '복사됨' : '복사' }}
+              </button>
+            </div>
           </div>
           <p v-if="suggestionError[row.segment]" class="suggestion-error">{{ suggestionError[row.segment] }}</p>
           <div class="segment-row-footer">
@@ -245,30 +243,28 @@ onMounted(load)
               </template>
               <span v-else class="suggestion-note">제안할 키워드 없음</span>
             </div>
-            <template v-if="reviewCounts[row.segment] < 3">
-              <div class="suggestion-row">
-                <span class="suggestion-hint">AI 추천(일반지식):</span>
-                <template v-if="generalSuggestions[row.segment]?.length">
-                  <button
-                    v-for="keyword in generalSuggestions[row.segment]"
-                    :key="keyword"
-                    type="button"
-                    class="suggestion-chip"
-                    @click="applySuggestion(row, keyword)"
-                  >
-                    + {{ keyword }}
-                  </button>
-                </template>
-                <span v-else class="suggestion-note">제안 없음</span>
-              </div>
-              <div class="suggestion-row prompt-box">
-                <span class="suggestion-hint">AI 프롬프트:</span>
-                <span class="prompt-text">{{ promptText[row.segment] }}</span>
-                <button type="button" class="copy-button" @click="copyPrompt(row)">
-                  {{ copiedSegment === row.segment ? '복사됨' : '복사' }}
+            <div v-if="reviewCounts[row.segment] < 3" class="suggestion-row">
+              <span class="suggestion-hint">AI 추천(일반지식):</span>
+              <template v-if="generalSuggestions[row.segment]?.length">
+                <button
+                  v-for="keyword in generalSuggestions[row.segment]"
+                  :key="keyword"
+                  type="button"
+                  class="suggestion-chip"
+                  @click="applySuggestion(row, keyword)"
+                >
+                  + {{ keyword }}
                 </button>
-              </div>
-            </template>
+              </template>
+              <span v-else class="suggestion-note">제안 없음</span>
+            </div>
+            <div class="suggestion-row prompt-box">
+              <span class="suggestion-hint">AI 프롬프트:</span>
+              <span class="prompt-text">{{ promptText[row.segment] }}</span>
+              <button type="button" class="copy-button" @click="copyPrompt(row)">
+                {{ copiedSegment === row.segment ? '복사됨' : '복사' }}
+              </button>
+            </div>
           </div>
           <p v-if="suggestionError[row.segment]" class="suggestion-error">{{ suggestionError[row.segment] }}</p>
           <div class="segment-row-footer">
