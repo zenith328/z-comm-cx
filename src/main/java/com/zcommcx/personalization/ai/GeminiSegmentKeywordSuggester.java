@@ -63,12 +63,12 @@ public class GeminiSegmentKeywordSuggester implements SegmentKeywordSuggester {
     }
 
     @Override
-    public SegmentKeywordFallbackSuggestion suggestFallback(CustomerSegment segment, String existingKeywords) {
+    public List<String> suggestFallback(CustomerSegment segment, String existingKeywords) {
         String prompt = SegmentKeywordPrompts.fallbackPrompt(segment, existingKeywords);
 
         JsonNode resultNode;
         try {
-            resultNode = geminiClient.generateJson(prompt, buildFallbackResponseSchema());
+            resultNode = geminiClient.generateJson(prompt, buildResponseSchema());
         } catch (GeminiClientException e) {
             throw new SegmentKeywordSuggestionException("Gemini 일반 지식 기반 키워드 제안 호출에 실패했습니다.", e);
         }
@@ -84,27 +84,6 @@ public class GeminiSegmentKeywordSuggester implements SegmentKeywordSuggester {
         } else {
             log.warn("Gemini 일반 지식 기반 키워드 제안 응답 파싱 실패. resultNode={}", resultNode);
         }
-
-        String searchQuery = resultNode.path("searchQuery").asText(null);
-        return new SegmentKeywordFallbackSuggestion(keywords, searchQuery);
-    }
-
-    private ObjectNode buildFallbackResponseSchema() {
-        ObjectNode keywordItems = objectMapper.createObjectNode().put("type", "STRING");
-
-        ObjectNode keywordsArray = objectMapper.createObjectNode();
-        keywordsArray.put("type", "ARRAY");
-        keywordsArray.set("items", keywordItems);
-
-        ObjectNode schemaProperties = objectMapper.createObjectNode();
-        schemaProperties.set("keywords", keywordsArray);
-        schemaProperties.set("searchQuery", objectMapper.createObjectNode().put("type", "STRING"));
-
-        ObjectNode responseSchema = objectMapper.createObjectNode();
-        responseSchema.put("type", "OBJECT");
-        responseSchema.set("properties", schemaProperties);
-        responseSchema.putArray("required").add("keywords").add("searchQuery");
-
-        return responseSchema;
+        return keywords;
     }
 }

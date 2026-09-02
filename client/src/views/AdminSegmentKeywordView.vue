@@ -20,7 +20,7 @@ const hasSuggested = ref<Record<string, boolean>>({})
 const reviewSuggestions = ref<Record<string, string[]>>({})
 const reviewCounts = ref<Record<string, number>>({})
 const generalSuggestions = ref<Record<string, string[]>>({})
-const searchQueryText = ref<Record<string, string>>({})
+const promptText = ref<Record<string, string>>({})
 const copiedSegment = ref<CustomerSegment | null>(null)
 
 const historyModalRow = ref<SegmentKeywordResponse | null>(null)
@@ -74,9 +74,10 @@ function formatUpdatedAt(value: string | null): string {
 }
 
 /**
- * "AI 추천 키워드"를 누르면 항상 세 가지를 함께 받는다: ①리뷰 기반 키워드(리뷰가 부족하면 빈
- * 배열), ②AI 일반 지식 기반 키워드, ③관리자가 직접 검색해볼 검색어. 어느 것도 자동으로
- * 저장되지 않고, 후보 키워드를 클릭하면 입력창에 추가만 되며 "저장"은 별도로 눌러야 한다.
+ * "AI 추천 키워드"를 누르면 리뷰가 충분한 세그먼트는 ①리뷰 기반 키워드만 받는다. 리뷰가
+ * 부족하면 대신 ②AI 일반 지식 기반 키워드와 ③다른 AI 챗봇에 붙여넣어 물어볼 수 있는
+ * 프롬프트를 함께 받는다. 어느 것도 자동으로 저장되지 않고, 후보 키워드를 클릭하면 입력창에
+ * 추가만 되며 "저장"은 별도로 눌러야 한다.
  */
 async function suggestKeywords(row: SegmentKeywordResponse) {
   suggestingSegment.value = row.segment
@@ -86,7 +87,7 @@ async function suggestKeywords(row: SegmentKeywordResponse) {
     reviewCounts.value = { ...reviewCounts.value, [row.segment]: result.reviewCount }
     reviewSuggestions.value = { ...reviewSuggestions.value, [row.segment]: result.reviewKeywords }
     generalSuggestions.value = { ...generalSuggestions.value, [row.segment]: result.generalKeywords }
-    searchQueryText.value = { ...searchQueryText.value, [row.segment]: result.searchQuery ?? '' }
+    promptText.value = { ...promptText.value, [row.segment]: result.promptText ?? '' }
     hasSuggested.value = { ...hasSuggested.value, [row.segment]: true }
   } catch (error) {
     console.error(error)
@@ -98,8 +99,8 @@ async function suggestKeywords(row: SegmentKeywordResponse) {
   }
 }
 
-async function copySearchQuery(row: SegmentKeywordResponse) {
-  const text = searchQueryText.value[row.segment]
+async function copyPrompt(row: SegmentKeywordResponse) {
+  const text = promptText.value[row.segment]
   if (!text) return
   try {
     await navigator.clipboard.writeText(text)
@@ -142,8 +143,9 @@ onMounted(load)
     <p class="hint">
       "AI 추천 키워드" 버튼은 해당 세그먼트 고객이 쓴 리뷰를 AI로 분석해 키워드 후보를 제안합니다. 후보를
       클릭하면 입력창에 추가만 될 뿐 자동으로 저장되지 않으며, 반영하려면 "저장" 버튼을 따로 눌러야 합니다.
-      리뷰가 3건 미만이면 리뷰 대신 AI의 일반 지식 기반 키워드와 관리자가 직접 검색해볼 검색어를
-      함께 제안합니다 — 이 경우 실제 리뷰 데이터에 근거한 게 아니므로 참고용으로만 활용하세요.
+      리뷰가 3건 미만이면 리뷰 대신 AI의 일반 지식 기반 키워드와, ChatGPT/Gemini 같은 다른 AI 챗봇에
+      붙여넣어 물어볼 수 있는 프롬프트를 함께 제안합니다 — 이 경우 실제 리뷰 데이터에 근거한 게
+      아니므로 참고용으로만 활용하세요.
     </p>
 
     <p v-if="loading" class="loading">불러오는 중...</p>
@@ -190,15 +192,10 @@ onMounted(load)
                 </template>
                 <span v-else class="suggestion-note">제안 없음</span>
               </div>
-              <div class="suggestion-row search-hint">
-                <span class="suggestion-hint">AI 추천 검색어:</span>
-                <span class="search-query">{{ searchQueryText[row.segment] || '(생성 실패)' }}</span>
-                <button
-                  type="button"
-                  class="copy-button"
-                  :disabled="!searchQueryText[row.segment]"
-                  @click="copySearchQuery(row)"
-                >
+              <div class="suggestion-row prompt-box">
+                <span class="suggestion-hint">AI 프롬프트:</span>
+                <span class="prompt-text">{{ promptText[row.segment] }}</span>
+                <button type="button" class="copy-button" @click="copyPrompt(row)">
                   {{ copiedSegment === row.segment ? '복사됨' : '복사' }}
                 </button>
               </div>
@@ -264,15 +261,10 @@ onMounted(load)
                 </template>
                 <span v-else class="suggestion-note">제안 없음</span>
               </div>
-              <div class="suggestion-row search-hint">
-                <span class="suggestion-hint">AI 추천 검색어:</span>
-                <span class="search-query">{{ searchQueryText[row.segment] || '(생성 실패)' }}</span>
-                <button
-                  type="button"
-                  class="copy-button"
-                  :disabled="!searchQueryText[row.segment]"
-                  @click="copySearchQuery(row)"
-                >
+              <div class="suggestion-row prompt-box">
+                <span class="suggestion-hint">AI 프롬프트:</span>
+                <span class="prompt-text">{{ promptText[row.segment] }}</span>
+                <button type="button" class="copy-button" @click="copyPrompt(row)">
                   {{ copiedSegment === row.segment ? '복사됨' : '복사' }}
                 </button>
               </div>
@@ -447,13 +439,13 @@ onMounted(load)
   font-size: 11px;
   color: #a80000;
 }
-.search-hint {
+.prompt-box {
   padding: 6px 10px;
   border: 1px dashed #ccc;
   border-radius: 6px;
   background: #fafafa;
 }
-.search-query {
+.prompt-text {
   flex: 1;
   font-size: 12px;
   color: #333;
@@ -469,10 +461,5 @@ onMounted(load)
 }
 .copy-button:hover {
   background: #eef4ff;
-}
-.copy-button:disabled {
-  color: #999;
-  border-color: #ccc;
-  cursor: default;
 }
 </style>

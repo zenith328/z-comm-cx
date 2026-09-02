@@ -1,6 +1,5 @@
 package com.zcommcx.personalization.service;
 
-import com.zcommcx.personalization.ai.SegmentKeywordFallbackSuggestion;
 import com.zcommcx.personalization.ai.SegmentKeywordSuggester;
 import com.zcommcx.personalization.domain.CustomerSegment;
 import com.zcommcx.personalization.domain.SegmentKeyword;
@@ -60,9 +59,13 @@ public class SegmentKeywordService {
 
     /**
      * 리뷰가 충분하면(MIN_REVIEWS_FOR_SUGGESTION 이상) 리뷰 기반 키워드만 제안한다. 리뷰가
-     * 부족하면 리뷰 기반 호출은 생략하고, 대신 AI 일반 지식 기반 키워드 + 관리자가 직접
-     * 검색해볼 검색어를 함께 제안한다 — 둘 다 실제 리뷰 데이터에 근거한 게 아니라 참고용이다.
-     * 리뷰가 충분할 때는 일반지식/검색어를 만들지 않아 불필요한 AI 호출 비용이 들지 않는다.
+     * 부족하면 리뷰 기반 호출은 생략하고, 대신 AI 일반 지식 기반 키워드를 제안한다 — 실제 리뷰
+     * 데이터에 근거한 게 아니라 참고용이다. 리뷰가 충분할 때는 일반지식을 만들지 않아 불필요한
+     * AI 호출 비용이 들지 않는다.
+     *
+     * <p>promptText는 AI 호출 없이 고정 문구로 만든다 — 관리자가 이 결과에 만족하지 못할 때
+     * ChatGPT/Gemini 앱 같은 다른 AI 챗봇에 그대로 붙여넣어 물어볼 수 있도록 제공하는 것으로,
+     * 매번 다르게 생성되면 품질이 들쭉날쭉해지므로 검증된 문구 하나를 세그먼트만 바꿔 재사용한다.
      *
      * <p>클래스 레벨 readOnly 트랜잭션을 여기서는 반드시 오버라이드해야 한다 — keywordSuggester 호출이
      * 내부적으로 GeminiApiUsageService.recordRequest()를 통해 사용량을 DB에 기록(INSERT)하는데,
@@ -79,7 +82,9 @@ public class SegmentKeywordService {
             return new SegmentKeywordSuggestion(reviewKeywords, excerpts.size(), List.of(), null);
         }
 
-        SegmentKeywordFallbackSuggestion general = keywordSuggester.suggestFallback(segment, existingKeywords);
-        return new SegmentKeywordSuggestion(List.of(), excerpts.size(), general.keywords(), general.searchQuery());
+        List<String> generalKeywords = keywordSuggester.suggestFallback(segment, existingKeywords);
+        String promptText = "%s의 구매 결정 요인 및 소비 트렌드를 한눈에 보기 쉬운 키워드로 정리해 줘."
+                .formatted(segment.getLabel());
+        return new SegmentKeywordSuggestion(List.of(), excerpts.size(), generalKeywords, promptText);
     }
 }

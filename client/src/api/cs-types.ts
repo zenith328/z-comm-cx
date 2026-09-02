@@ -49,12 +49,13 @@ export interface SegmentKeywordRequest {
 }
 
 export interface SegmentKeywordSuggestionResponse {
-  // 리뷰가 MIN_REVIEWS_FOR_SUGGESTION 미만이면 항상 빈 배열 (AI 호출 자체를 생략함).
+  // 리뷰가 부족하면 항상 빈 배열 (AI 호출 자체를 생략함).
   reviewKeywords: string[]
   reviewCount: number
-  // 리뷰 충분 여부와 무관하게 AI가 일반 지식으로 항상 생성하는 참고용 제안.
+  // 리뷰 부족할 때만 AI 일반 지식으로 생성되는 참고용 제안.
   generalKeywords: string[]
-  searchQuery: string | null
+  // 리뷰 부족할 때만 값이 있음. 다른 AI 챗봇에 그대로 붙여넣어 물어볼 수 있는 고정 문구.
+  promptText: string | null
 }
 
 export interface SegmentKeywordHistoryItem {
