@@ -140,10 +140,10 @@ onMounted(load)
       적용되며, 상품상세설명을 AI로 생성할 때 이 키워드를 함께 참고합니다.
     </p>
     <p class="hint">
-      "AI 추천 키워드" 버튼을 누르면 항상 세 가지를 함께 보여줍니다 — ①리뷰 기반 키워드(리뷰 3건
-      미만이면 "리뷰 부족"으로 표시), ②AI 일반 지식 기반 키워드(참고용), ③관리자가 직접 검색해볼
-      검색어. 키워드 후보를 클릭하면 입력창에 추가만 될 뿐 자동으로 저장되지 않으며, 반영하려면
-      "저장" 버튼을 따로 눌러야 합니다.
+      "AI 추천 키워드" 버튼은 해당 세그먼트 고객이 쓴 리뷰를 AI로 분석해 키워드 후보를 제안합니다. 후보를
+      클릭하면 입력창에 추가만 될 뿐 자동으로 저장되지 않으며, 반영하려면 "저장" 버튼을 따로 눌러야 합니다.
+      리뷰가 3건 미만이면 리뷰 대신 AI의 일반 지식 기반 키워드와 관리자가 직접 검색해볼 검색어를
+      함께 제안합니다 — 이 경우 실제 리뷰 데이터에 근거한 게 아니므로 참고용으로만 활용하세요.
     </p>
 
     <p v-if="loading" class="loading">불러오는 중...</p>
@@ -174,33 +174,35 @@ onMounted(load)
               </template>
               <span v-else class="suggestion-note">제안할 키워드 없음</span>
             </div>
-            <div class="suggestion-row">
-              <span class="suggestion-hint">AI 추천(일반지식):</span>
-              <template v-if="generalSuggestions[row.segment]?.length">
+            <template v-if="reviewCounts[row.segment] < 3">
+              <div class="suggestion-row">
+                <span class="suggestion-hint">AI 추천(일반지식):</span>
+                <template v-if="generalSuggestions[row.segment]?.length">
+                  <button
+                    v-for="keyword in generalSuggestions[row.segment]"
+                    :key="keyword"
+                    type="button"
+                    class="suggestion-chip"
+                    @click="applySuggestion(row, keyword)"
+                  >
+                    + {{ keyword }}
+                  </button>
+                </template>
+                <span v-else class="suggestion-note">제안 없음</span>
+              </div>
+              <div class="suggestion-row search-hint">
+                <span class="suggestion-hint">AI 추천 검색어:</span>
+                <span class="search-query">{{ searchQueryText[row.segment] || '(생성 실패)' }}</span>
                 <button
-                  v-for="keyword in generalSuggestions[row.segment]"
-                  :key="keyword"
                   type="button"
-                  class="suggestion-chip"
-                  @click="applySuggestion(row, keyword)"
+                  class="copy-button"
+                  :disabled="!searchQueryText[row.segment]"
+                  @click="copySearchQuery(row)"
                 >
-                  + {{ keyword }}
+                  {{ copiedSegment === row.segment ? '복사됨' : '복사' }}
                 </button>
-              </template>
-              <span v-else class="suggestion-note">제안 없음</span>
-            </div>
-            <div class="suggestion-row search-hint">
-              <span class="suggestion-hint">AI 추천 검색어:</span>
-              <span class="search-query">{{ searchQueryText[row.segment] || '(생성 실패)' }}</span>
-              <button
-                type="button"
-                class="copy-button"
-                :disabled="!searchQueryText[row.segment]"
-                @click="copySearchQuery(row)"
-              >
-                {{ copiedSegment === row.segment ? '복사됨' : '복사' }}
-              </button>
-            </div>
+              </div>
+            </template>
           </div>
           <p v-if="suggestionError[row.segment]" class="suggestion-error">{{ suggestionError[row.segment] }}</p>
           <div class="segment-row-footer">
@@ -246,33 +248,35 @@ onMounted(load)
               </template>
               <span v-else class="suggestion-note">제안할 키워드 없음</span>
             </div>
-            <div class="suggestion-row">
-              <span class="suggestion-hint">AI 추천(일반지식):</span>
-              <template v-if="generalSuggestions[row.segment]?.length">
+            <template v-if="reviewCounts[row.segment] < 3">
+              <div class="suggestion-row">
+                <span class="suggestion-hint">AI 추천(일반지식):</span>
+                <template v-if="generalSuggestions[row.segment]?.length">
+                  <button
+                    v-for="keyword in generalSuggestions[row.segment]"
+                    :key="keyword"
+                    type="button"
+                    class="suggestion-chip"
+                    @click="applySuggestion(row, keyword)"
+                  >
+                    + {{ keyword }}
+                  </button>
+                </template>
+                <span v-else class="suggestion-note">제안 없음</span>
+              </div>
+              <div class="suggestion-row search-hint">
+                <span class="suggestion-hint">AI 추천 검색어:</span>
+                <span class="search-query">{{ searchQueryText[row.segment] || '(생성 실패)' }}</span>
                 <button
-                  v-for="keyword in generalSuggestions[row.segment]"
-                  :key="keyword"
                   type="button"
-                  class="suggestion-chip"
-                  @click="applySuggestion(row, keyword)"
+                  class="copy-button"
+                  :disabled="!searchQueryText[row.segment]"
+                  @click="copySearchQuery(row)"
                 >
-                  + {{ keyword }}
+                  {{ copiedSegment === row.segment ? '복사됨' : '복사' }}
                 </button>
-              </template>
-              <span v-else class="suggestion-note">제안 없음</span>
-            </div>
-            <div class="suggestion-row search-hint">
-              <span class="suggestion-hint">AI 추천 검색어:</span>
-              <span class="search-query">{{ searchQueryText[row.segment] || '(생성 실패)' }}</span>
-              <button
-                type="button"
-                class="copy-button"
-                :disabled="!searchQueryText[row.segment]"
-                @click="copySearchQuery(row)"
-              >
-                {{ copiedSegment === row.segment ? '복사됨' : '복사' }}
-              </button>
-            </div>
+              </div>
+            </template>
           </div>
           <p v-if="suggestionError[row.segment]" class="suggestion-error">{{ suggestionError[row.segment] }}</p>
           <div class="segment-row-footer">
