@@ -49,10 +49,11 @@ export interface SegmentKeywordRequest {
 }
 
 export interface SegmentKeywordSuggestionResponse {
-  keywords: string[]
+  // 리뷰가 MIN_REVIEWS_FOR_SUGGESTION 미만이면 항상 빈 배열 (AI 호출 자체를 생략함).
+  reviewKeywords: string[]
   reviewCount: number
-  // true면 리뷰가 부족해서 AI 일반 지식으로 대신 제안한 참고용 결과 (searchQuery도 이때만 값이 있음).
-  fallback: boolean
+  // 리뷰 충분 여부와 무관하게 AI가 일반 지식으로 항상 생성하는 참고용 제안.
+  generalKeywords: string[]
   searchQuery: string | null
 }
 

@@ -15,9 +15,11 @@ const saveErrorSegment = ref<CustomerSegment | null>(null)
 
 const suggestingSegment = ref<CustomerSegment | null>(null)
 const suggestionError = ref<Record<string, string>>({})
-const suggestedKeywords = ref<Record<string, string[]>>({})
-// true면 리뷰가 부족해서 AI 일반 지식으로 대신 제안한 참고용 결과다(리뷰 기반 추천과 구분 표시).
-const fallbackActive = ref<Record<string, boolean>>({})
+// "AI 추천 키워드"를 누르면 항상 세 가지(리뷰 기반/일반지식 기반/검색어)를 함께 보여준다.
+const hasSuggested = ref<Record<string, boolean>>({})
+const reviewSuggestions = ref<Record<string, string[]>>({})
+const reviewCounts = ref<Record<string, number>>({})
+const generalSuggestions = ref<Record<string, string[]>>({})
 const searchQueryText = ref<Record<string, string>>({})
 const copiedSegment = ref<CustomerSegment | null>(null)
 
@@ -72,34 +74,20 @@ function formatUpdatedAt(value: string | null): string {
 }
 
 /**
- * 이 세그먼트 고객이 쓴 것으로 확인된 리뷰를 AI로 분석해 키워드 후보를 제안받는다. 결과는
- * 바로 저장되지 않고 화면에 후보로만 표시되며, 관리자가 "+"를 눌러야 입력창에 반영된다.
- *
- * 리뷰가 부족하면(fallback=true) 리뷰 기반 분석 대신 AI 일반 지식 기반 키워드 후보 +
- * 관리자가 직접 검색해볼 검색어를 함께 받는다. 둘 다 실제 리뷰 데이터가 아닌 참고용이다.
+ * "AI 추천 키워드"를 누르면 항상 세 가지를 함께 받는다: ①리뷰 기반 키워드(리뷰가 부족하면 빈
+ * 배열), ②AI 일반 지식 기반 키워드, ③관리자가 직접 검색해볼 검색어. 어느 것도 자동으로
+ * 저장되지 않고, 후보 키워드를 클릭하면 입력창에 추가만 되며 "저장"은 별도로 눌러야 한다.
  */
 async function suggestKeywords(row: SegmentKeywordResponse) {
   suggestingSegment.value = row.segment
   suggestionError.value = { ...suggestionError.value, [row.segment]: '' }
-  suggestedKeywords.value = { ...suggestedKeywords.value, [row.segment]: [] }
-  fallbackActive.value = { ...fallbackActive.value, [row.segment]: false }
-  searchQueryText.value = { ...searchQueryText.value, [row.segment]: '' }
   try {
     const result = await suggestSegmentKeywords(row.segment)
-    if (result.fallback) {
-      fallbackActive.value[row.segment] = true
-      searchQueryText.value[row.segment] = result.searchQuery ?? ''
-      if (result.keywords.length > 0) {
-        suggestedKeywords.value[row.segment] = result.keywords
-      } else {
-        suggestionError.value[row.segment] =
-          `분석할 리뷰가 부족합니다 (현재 ${result.reviewCount}건). 아래 검색어로 직접 찾아보세요.`
-      }
-    } else if (result.keywords.length === 0) {
-      suggestionError.value[row.segment] = `리뷰 ${result.reviewCount}건을 분석했지만 새로 제안할 키워드가 없습니다.`
-    } else {
-      suggestedKeywords.value[row.segment] = result.keywords
-    }
+    reviewCounts.value = { ...reviewCounts.value, [row.segment]: result.reviewCount }
+    reviewSuggestions.value = { ...reviewSuggestions.value, [row.segment]: result.reviewKeywords }
+    generalSuggestions.value = { ...generalSuggestions.value, [row.segment]: result.generalKeywords }
+    searchQueryText.value = { ...searchQueryText.value, [row.segment]: result.searchQuery ?? '' }
+    hasSuggested.value = { ...hasSuggested.value, [row.segment]: true }
   } catch (error) {
     console.error(error)
     suggestionError.value[row.segment] = isQuotaExceededError(error)
@@ -134,7 +122,8 @@ function applySuggestion(row: SegmentKeywordResponse, keyword: string) {
     parts.push(keyword)
   }
   drafts.value[row.segment] = parts.join(', ')
-  suggestedKeywords.value[row.segment] = (suggestedKeywords.value[row.segment] ?? []).filter((k) => k !== keyword)
+  reviewSuggestions.value[row.segment] = (reviewSuggestions.value[row.segment] ?? []).filter((k) => k !== keyword)
+  generalSuggestions.value[row.segment] = (generalSuggestions.value[row.segment] ?? []).filter((k) => k !== keyword)
 }
 
 onMounted(load)
@@ -151,10 +140,10 @@ onMounted(load)
       적용되며, 상품상세설명을 AI로 생성할 때 이 키워드를 함께 참고합니다.
     </p>
     <p class="hint">
-      "AI 추천 키워드" 버튼은 해당 세그먼트 고객이 쓴 리뷰를 AI로 분석해 키워드 후보를 제안합니다. 후보를
-      클릭하면 입력창에 추가만 될 뿐 자동으로 저장되지 않으며, 반영하려면 "저장" 버튼을 따로 눌러야 합니다.
-      리뷰가 3건 미만이면 리뷰 대신 AI의 일반 지식으로 키워드 후보와 검색어를 대신 제안합니다 — 이 경우
-      실제 리뷰 데이터에 근거한 게 아니므로 참고용으로만 활용하세요.
+      "AI 추천 키워드" 버튼을 누르면 항상 세 가지를 함께 보여줍니다 — ①리뷰 기반 키워드(리뷰 3건
+      미만이면 "리뷰 부족"으로 표시), ②AI 일반 지식 기반 키워드(참고용), ③관리자가 직접 검색해볼
+      검색어. 키워드 후보를 클릭하면 입력창에 추가만 될 뿐 자동으로 저장되지 않으며, 반영하려면
+      "저장" 버튼을 따로 눌러야 합니다.
     </p>
 
     <p v-if="loading" class="loading">불러오는 중...</p>
@@ -166,25 +155,54 @@ onMounted(load)
         <div v-for="row in maleRows()" :key="row.segment" class="segment-row">
           <label class="segment-label">{{ row.segmentLabel }}</label>
           <textarea v-model="drafts[row.segment]" rows="2" placeholder="예: 가성비, 활동성, 튼튼함"></textarea>
-          <div v-if="suggestedKeywords[row.segment]?.length" class="suggestion-chips">
-            <span class="suggestion-hint">{{ fallbackActive[row.segment] ? 'AI 추천(일반 지식, 참고용):' : 'AI 추천:' }}</span>
-            <button
-              v-for="keyword in suggestedKeywords[row.segment]"
-              :key="keyword"
-              type="button"
-              class="suggestion-chip"
-              @click="applySuggestion(row, keyword)"
-            >
-              + {{ keyword }}
-            </button>
+          <div v-if="hasSuggested[row.segment]" class="suggestion-panel">
+            <div class="suggestion-row">
+              <span class="suggestion-hint">AI 추천(리뷰):</span>
+              <span v-if="reviewCounts[row.segment] < 3" class="suggestion-note">
+                리뷰 부족 (현재 {{ reviewCounts[row.segment] }}건)
+              </span>
+              <template v-else-if="reviewSuggestions[row.segment]?.length">
+                <button
+                  v-for="keyword in reviewSuggestions[row.segment]"
+                  :key="keyword"
+                  type="button"
+                  class="suggestion-chip"
+                  @click="applySuggestion(row, keyword)"
+                >
+                  + {{ keyword }}
+                </button>
+              </template>
+              <span v-else class="suggestion-note">제안할 키워드 없음</span>
+            </div>
+            <div class="suggestion-row">
+              <span class="suggestion-hint">AI 추천(일반지식):</span>
+              <template v-if="generalSuggestions[row.segment]?.length">
+                <button
+                  v-for="keyword in generalSuggestions[row.segment]"
+                  :key="keyword"
+                  type="button"
+                  class="suggestion-chip"
+                  @click="applySuggestion(row, keyword)"
+                >
+                  + {{ keyword }}
+                </button>
+              </template>
+              <span v-else class="suggestion-note">제안 없음</span>
+            </div>
+            <div class="suggestion-row search-hint">
+              <span class="suggestion-hint">AI 추천 검색어:</span>
+              <span class="search-query">{{ searchQueryText[row.segment] || '(생성 실패)' }}</span>
+              <button
+                type="button"
+                class="copy-button"
+                :disabled="!searchQueryText[row.segment]"
+                @click="copySearchQuery(row)"
+              >
+                {{ copiedSegment === row.segment ? '복사됨' : '복사' }}
+              </button>
+            </div>
           </div>
           <p v-if="suggestionError[row.segment]" class="suggestion-error">{{ suggestionError[row.segment] }}</p>
-          <div v-if="searchQueryText[row.segment]" class="search-hint">
-            <span class="search-query">{{ searchQueryText[row.segment] }}</span>
-            <button type="button" class="copy-button" @click="copySearchQuery(row)">
-              {{ copiedSegment === row.segment ? '복사됨' : '복사' }}
-            </button>
-          </div>
           <div class="segment-row-footer">
             <span class="status">{{ formatUpdatedAt(row.updatedAt) }}</span>
             <span v-if="saveErrorSegment === row.segment" class="error">저장 실패</span>
@@ -209,25 +227,54 @@ onMounted(load)
         <div v-for="row in femaleRows()" :key="row.segment" class="segment-row">
           <label class="segment-label">{{ row.segmentLabel }}</label>
           <textarea v-model="drafts[row.segment]" rows="2" placeholder="예: 트렌디함, 디자인, 선물용"></textarea>
-          <div v-if="suggestedKeywords[row.segment]?.length" class="suggestion-chips">
-            <span class="suggestion-hint">{{ fallbackActive[row.segment] ? 'AI 추천(일반 지식, 참고용):' : 'AI 추천:' }}</span>
-            <button
-              v-for="keyword in suggestedKeywords[row.segment]"
-              :key="keyword"
-              type="button"
-              class="suggestion-chip"
-              @click="applySuggestion(row, keyword)"
-            >
-              + {{ keyword }}
-            </button>
+          <div v-if="hasSuggested[row.segment]" class="suggestion-panel">
+            <div class="suggestion-row">
+              <span class="suggestion-hint">AI 추천(리뷰):</span>
+              <span v-if="reviewCounts[row.segment] < 3" class="suggestion-note">
+                리뷰 부족 (현재 {{ reviewCounts[row.segment] }}건)
+              </span>
+              <template v-else-if="reviewSuggestions[row.segment]?.length">
+                <button
+                  v-for="keyword in reviewSuggestions[row.segment]"
+                  :key="keyword"
+                  type="button"
+                  class="suggestion-chip"
+                  @click="applySuggestion(row, keyword)"
+                >
+                  + {{ keyword }}
+                </button>
+              </template>
+              <span v-else class="suggestion-note">제안할 키워드 없음</span>
+            </div>
+            <div class="suggestion-row">
+              <span class="suggestion-hint">AI 추천(일반지식):</span>
+              <template v-if="generalSuggestions[row.segment]?.length">
+                <button
+                  v-for="keyword in generalSuggestions[row.segment]"
+                  :key="keyword"
+                  type="button"
+                  class="suggestion-chip"
+                  @click="applySuggestion(row, keyword)"
+                >
+                  + {{ keyword }}
+                </button>
+              </template>
+              <span v-else class="suggestion-note">제안 없음</span>
+            </div>
+            <div class="suggestion-row search-hint">
+              <span class="suggestion-hint">AI 추천 검색어:</span>
+              <span class="search-query">{{ searchQueryText[row.segment] || '(생성 실패)' }}</span>
+              <button
+                type="button"
+                class="copy-button"
+                :disabled="!searchQueryText[row.segment]"
+                @click="copySearchQuery(row)"
+              >
+                {{ copiedSegment === row.segment ? '복사됨' : '복사' }}
+              </button>
+            </div>
           </div>
           <p v-if="suggestionError[row.segment]" class="suggestion-error">{{ suggestionError[row.segment] }}</p>
-          <div v-if="searchQueryText[row.segment]" class="search-hint">
-            <span class="search-query">{{ searchQueryText[row.segment] }}</span>
-            <button type="button" class="copy-button" @click="copySearchQuery(row)">
-              {{ copiedSegment === row.segment ? '복사됨' : '복사' }}
-            </button>
-          </div>
           <div class="segment-row-footer">
             <span class="status">{{ formatUpdatedAt(row.updatedAt) }}</span>
             <span v-if="saveErrorSegment === row.segment" class="error">저장 실패</span>
@@ -358,16 +405,26 @@ onMounted(load)
 .segment-row-footer .history-button:hover {
   background: #f5f5f5;
 }
-.suggestion-chips {
+.suggestion-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 2px;
+}
+.suggestion-row {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 6px;
-  margin-top: 2px;
 }
 .suggestion-hint {
   font-size: 11px;
   color: #999;
+  flex-shrink: 0;
+}
+.suggestion-note {
+  font-size: 11px;
+  color: #bbb;
 }
 .suggestion-chip {
   padding: 3px 8px;
@@ -387,10 +444,6 @@ onMounted(load)
   color: #a80000;
 }
 .search-hint {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 2px;
   padding: 6px 10px;
   border: 1px dashed #ccc;
   border-radius: 6px;
@@ -412,5 +465,10 @@ onMounted(load)
 }
 .copy-button:hover {
   background: #eef4ff;
+}
+.copy-button:disabled {
+  color: #999;
+  border-color: #ccc;
+  cursor: default;
 }
 </style>

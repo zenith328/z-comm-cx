@@ -59,10 +59,10 @@ public class SegmentKeywordService {
     }
 
     /**
-     * 이 세그먼트 고객이 쓴 것으로 확인된 리뷰를 모아 AI에게 키워드 후보를 제안받는다. 리뷰가
-     * 너무 적으면(MIN_REVIEWS_FOR_SUGGESTION 미만) 리뷰 기반 분석 대신 AI의 일반 지식으로
-     * 키워드/검색어를 대신 제안한다(fallback=true) — 호출자(컨트롤러/화면)는 fallback 플래그로
-     * "리뷰 기반 추천"과 "일반 지식 기반 참고용 추천"을 구분해서 표시해야 한다.
+     * "AI 추천 키워드"를 누르면 항상 세 가지를 함께 제안한다: ①리뷰 기반 키워드(리뷰가
+     * MIN_REVIEWS_FOR_SUGGESTION 이상일 때만 AI 호출, 부족하면 호출 자체를 생략하고 빈 리스트),
+     * ②AI 일반 지식 기반 키워드, ③관리자가 직접 검색해볼 검색어. ②③은 리뷰 충분 여부와 무관하게
+     * 항상 생성한다 — 리뷰가 충분해도 참고용으로 함께 보여준다.
      *
      * <p>클래스 레벨 readOnly 트랜잭션을 여기서는 반드시 오버라이드해야 한다 — keywordSuggester 호출이
      * 내부적으로 GeminiApiUsageService.recordRequest()를 통해 사용량을 DB에 기록(INSERT)하는데,
@@ -72,12 +72,13 @@ public class SegmentKeywordService {
     @Transactional
     public SegmentKeywordSuggestion suggestKeywords(CustomerSegment segment) {
         List<String> excerpts = reviewInsightService.collectReviewExcerpts(segment, MAX_REVIEW_EXCERPTS);
-        if (excerpts.size() < MIN_REVIEWS_FOR_SUGGESTION) {
-            SegmentKeywordFallbackSuggestion fallback = keywordSuggester.suggestFallback(segment, getKeywords(segment));
-            return new SegmentKeywordSuggestion(fallback.keywords(), excerpts.size(), true, fallback.searchQuery());
-        }
+        String existingKeywords = getKeywords(segment);
 
-        List<String> suggested = keywordSuggester.suggest(segment, excerpts, getKeywords(segment));
-        return new SegmentKeywordSuggestion(suggested, excerpts.size(), false, null);
+        List<String> reviewKeywords = excerpts.size() >= MIN_REVIEWS_FOR_SUGGESTION
+                ? keywordSuggester.suggest(segment, excerpts, existingKeywords)
+                : List.of();
+        SegmentKeywordFallbackSuggestion general = keywordSuggester.suggestFallback(segment, existingKeywords);
+
+        return new SegmentKeywordSuggestion(reviewKeywords, excerpts.size(), general.keywords(), general.searchQuery());
     }
 }
