@@ -23,6 +23,41 @@ const sending = ref(false)
 const scrollArea = ref<HTMLElement | null>(null)
 const messageInput = ref<HTMLInputElement | null>(null)
 
+const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition
+const voiceSupported = !!SpeechRecognitionCtor
+const listening = ref(false)
+let recognition: SpeechRecognition | null = null
+
+function startVoiceInput() {
+  if (!SpeechRecognitionCtor || sending.value || listening.value) return
+
+  recognition = new SpeechRecognitionCtor()
+  recognition.lang = 'ko-KR'
+  recognition.continuous = false
+  recognition.interimResults = false
+
+  recognition.onstart = () => {
+    listening.value = true
+  }
+  recognition.onresult = (event) => {
+    const transcript = event.results[event.results.length - 1][0].transcript
+    input.value = transcript.trim()
+  }
+  recognition.onerror = () => {
+    listening.value = false
+  }
+  recognition.onend = () => {
+    listening.value = false
+    messageInput.value?.focus()
+  }
+
+  recognition.start()
+}
+
+function stopVoiceInput() {
+  recognition?.stop()
+}
+
 onMounted(() => {
   if (session.current) {
     const saved = getChatState(session.current.name, session.current.phone)
@@ -87,9 +122,18 @@ async function scrollToBottom() {
         ref="messageInput"
         v-model="input"
         type="text"
-        placeholder="예: 주문번호 ORD-XXXX 취소해주세요"
+        :placeholder="listening ? '듣고 있어요...' : '예: 주문번호 ORD-XXXX 취소해주세요'"
         :disabled="sending"
       />
+      <button
+        v-if="voiceSupported"
+        type="button"
+        class="mic-btn"
+        :class="{ recording: listening }"
+        :disabled="sending"
+        :title="listening ? '음성 입력 중지' : '음성으로 입력'"
+        @click="listening ? stopVoiceInput() : startVoiceInput()"
+      >🎤</button>
       <button type="submit" :disabled="sending || !input.trim()">보내기</button>
     </form>
   </section>
@@ -166,5 +210,21 @@ async function scrollToBottom() {
 .composer button:disabled {
   background: #a7c4e0;
   cursor: not-allowed;
+}
+.mic-btn {
+  background: #fff;
+  border: 1px solid #ccc !important;
+  color: #333;
+  padding: 10px 14px !important;
+}
+.mic-btn.recording {
+  background: #fdeaea;
+  border-color: #f5b5b5 !important;
+  color: #a33;
+  animation: mic-pulse 1.2s ease-in-out infinite;
+}
+@keyframes mic-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
 }
 </style>
