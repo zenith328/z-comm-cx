@@ -7,6 +7,9 @@ import com.zcommcx.member.domain.Gender;
 import com.zcommcx.member.domain.Member;
 import com.zcommcx.member.domain.MemberRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -74,6 +77,11 @@ public class MemberService {
 
     public List<CxPayTransaction> getTransactionHistory(String name, String phone) {
         return cxPayTransactionRepository.findByMemberNameAndMemberPhoneOrderByCreatedAtDesc(name, phone);
+    }
+
+    /** 운영자 회원관리 화면용 목록 조회. 최근 가입한 회원부터 보여준다. */
+    public Page<Member> list(int page, int size) {
+        return memberRepository.findAll(PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt")));
     }
 
     private Member getOrCreate(String name, String phone) {
