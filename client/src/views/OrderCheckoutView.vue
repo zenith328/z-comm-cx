@@ -10,6 +10,7 @@ import {
   type ShippingHistoryEntry,
 } from '../utils/orderHistory'
 import { session } from '../stores/session'
+import { extractErrorMessage } from '../utils/apiError'
 
 const route = useRoute()
 const router = useRouter()
@@ -122,8 +123,9 @@ async function submit() {
       address2: form.address2,
     })
     router.push('/orders')
-  } catch {
-    errorMessage.value = '주문 처리 중 오류가 발생했습니다. 입력값을 확인해 주세요.'
+  } catch (e) {
+    // CX-Pay 잔액부족, 재고부족처럼 백엔드가 구체적인 이유를 내려주면 그걸 그대로 보여준다.
+    errorMessage.value = extractErrorMessage(e, '주문 처리 중 오류가 발생했습니다. 입력값을 확인해 주세요.')
   } finally {
     submitting.value = false
   }
@@ -147,6 +149,10 @@ onMounted(load)
         <span>{{ quantity }}개</span>
         <span class="total">{{ totalPrice.toLocaleString() }}원</span>
       </div>
+      <p class="cx-pay-balance">
+        CX-Pay 잔액: {{ (session.current?.balance ?? 0).toLocaleString() }}원
+        <span v-if="(session.current?.balance ?? 0) < totalPrice" class="insufficient">(잔액이 부족합니다)</span>
+      </p>
 
       <form class="order-form" @submit.prevent="submit">
         <fieldset>
@@ -191,6 +197,15 @@ onMounted(load)
 }
 .error {
   color: #a33;
+}
+.cx-pay-balance {
+  margin: -8px 0 20px;
+  font-size: 13px;
+  color: #666;
+}
+.cx-pay-balance .insufficient {
+  color: #a33;
+  font-weight: 600;
 }
 .summary {
   display: flex;
