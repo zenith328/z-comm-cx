@@ -20,6 +20,7 @@ public class ToolDefinitions {
 
     public ArrayNode functionDeclarations() {
         ArrayNode declarations = objectMapper.createArrayNode();
+        declarations.add(getProducts());
         declarations.add(getOrderDetails());
         declarations.add(getMyOrders());
         declarations.add(cancelOrder());
@@ -27,6 +28,17 @@ public class ToolDefinitions {
         declarations.add(requestReturn());
         declarations.add(escalateToHuman());
         return declarations;
+    }
+
+    private ObjectNode getProducts() {
+        ObjectNode properties = objectMapper.createObjectNode();
+        properties.set("keyword", stringProp("상품명에서 검색할 키워드 (예: '후드티', '레깅스'). 생략하면 전체 상품 중 최신순."));
+        properties.set("brand", stringProp("브랜드명 (정확히 일치해야 함). 생략하면 브랜드 무관."));
+        return tool(
+                "get_products",
+                "쇼핑몰에 등록된 상품 목록을 조회한다. 고객이 '상품 보여줘', '~있어?', '무슨 상품 있어?' 처럼 "
+                        + "상품을 찾거나 둘러보고 싶어할 때 사용한다. 최신순 최대 10건까지 반환된다(주문 관련 tool이 아니다).",
+                properties);
     }
 
     private ObjectNode getMyOrders() {

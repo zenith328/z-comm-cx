@@ -3,9 +3,12 @@ package com.zcommcx.chat.tool;
 import com.zcommcx.common.exception.NotFoundException;
 import com.zcommcx.guardrail.Guardrail;
 import com.zcommcx.guardrail.GuardrailDecision;
+import com.zcommcx.inventory.service.InventoryService;
 import com.zcommcx.order.domain.Order;
 import com.zcommcx.order.domain.OrderItem;
 import com.zcommcx.order.service.OrderService;
+import com.zcommcx.product.domain.Product;
+import com.zcommcx.product.service.ProductService;
 import com.zcommcx.ticket.domain.Ticket;
 import com.zcommcx.ticket.domain.TicketCategory;
 import com.zcommcx.ticket.service.TicketService;
@@ -33,10 +36,13 @@ public class ToolExecutor {
     private final TicketService ticketService;
     private final Guardrail guardrail;
     private final ObjectMapper objectMapper;
+    private final ProductService productService;
+    private final InventoryService inventoryService;
 
     public ObjectNode execute(String name, JsonNode args, String customerName, String customerPhone, String chatTranscript) {
         try {
             return switch (name) {
+                case "get_products" -> getProducts(args);
                 case "get_order_details" -> getOrderDetails(args);
                 case "get_my_orders" -> getMyOrders(args, customerName, customerPhone);
                 case "cancel_order" -> cancelOrder(args, customerName, customerPhone, chatTranscript);
@@ -48,6 +54,33 @@ public class ToolExecutor {
         } catch (NotFoundException | IllegalStateException | IllegalArgumentException e) {
             return errorResult(e.getMessage());
         }
+    }
+
+    private ObjectNode getProducts(JsonNode args) {
+        List<Product> products = productService.searchForChat(text(args, "keyword"), text(args, "brand"), 10);
+
+        ObjectNode result = objectMapper.createObjectNode();
+        result.put("success", true);
+        result.put("count", products.size());
+        ArrayNode productsNode = objectMapper.createArrayNode();
+        for (Product product : products) {
+            productsNode.add(productSummary(product));
+        }
+        result.set("products", productsNode);
+        return result;
+    }
+
+    private ObjectNode productSummary(Product product) {
+        ObjectNode node = objectMapper.createObjectNode();
+        node.put("name", product.getName());
+        node.put("brand", product.getBrand());
+        node.put("category", product.getCategory());
+        node.put("price", product.getPrice());
+        int available = inventoryService.findByProductId(product.getId())
+                .map(inv -> inv.getQuantity() - inv.getReservedQuantity())
+                .orElse(0);
+        node.put("availableQuantity", available);
+        return node;
     }
 
     private ObjectNode getMyOrders(JsonNode args, String customerName, String customerPhone) {

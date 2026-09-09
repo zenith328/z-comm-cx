@@ -94,4 +94,21 @@ public class ProductService {
     public List<String> findAllBrands() {
         return productRepository.findDistinctBrandsOrderByProductCountDesc();
     }
+
+    /**
+     * CS 채팅 등 고객 응대 채널에서 쓰는 상품 조회. 관리자 화면의 productCode 검색과 달리
+     * 고객은 상품코드를 모르므로 상품명 키워드로 찾는다. keyword/brand 둘 다 없으면 최신순
+     * 상위 limit건을 그대로 보여준다.
+     */
+    public List<Product> searchForChat(String keyword, String brand, int limit) {
+        Pageable pageable = PageRequest.of(0, Math.max(1, Math.min(limit, 20)));
+        if (keyword != null && !keyword.isBlank()) {
+            return productRepository.findByNameContainingIgnoreCaseOrderByCreatedAtDesc(keyword.trim(), pageable)
+                    .getContent();
+        }
+        if (brand != null && !brand.isBlank()) {
+            return productRepository.findByBrandOrderByCreatedAtDesc(brand.trim(), pageable).getContent();
+        }
+        return productRepository.findAllByOrderByCreatedAtDesc(pageable).getContent();
+    }
 }

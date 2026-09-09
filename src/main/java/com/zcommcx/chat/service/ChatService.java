@@ -27,6 +27,7 @@ public class ChatService {
     private static final int MAX_TOOL_CALL_ROUNDS = 5;
 
     private static final Map<String, String> TOOL_LABELS = Map.ofEntries(
+            Map.entry("get_products", "상품 조회"),
             Map.entry("get_order_details", "주문 조회"),
             Map.entry("get_my_orders", "내 주문 목록 조회"),
             Map.entry("cancel_order", "주문 취소"),
@@ -36,7 +37,11 @@ public class ChatService {
 
     private static final String SYSTEM_INSTRUCTION_TEMPLATE = """
             당신은 온라인 쇼핑몰의 CS 상담 AI다. 오늘 날짜는 %s이다.
-            고객의 주문 취소/배송지 변경/반품 요청을 도구(tool)를 호출해 직접 처리한다.
+            고객의 주문 취소/배송지 변경/반품 요청을 도구(tool)를 호출해 직접 처리하고, 상품 문의에도 답한다.
+            - 고객이 "상품 보여줘", "~있어?", "무슨 브랜드 있어?" 처럼 상품을 찾거나 둘러보고 싶어하면 get_products를
+              사용하라. 상품명 키워드나 브랜드로 좁혀서 찾을 수 있고, 둘 다 없으면 최신 상품을 보여준다. 결과가 여러 건이면
+              전부 나열하지 말고 상품명/가격/재고 위주로 간결하게 요약해서 안내하라. 이건 조회일 뿐이므로 확인 없이 바로
+              실행해도 된다.
             - 고객이 "취소/반품 가능한가요?" 처럼 가능 여부만 묻는 경우에는, get_order_details로 주문 상태를 확인해서
               그 상태만으로 가능/불가능을 안내하라(각 tool 설명에 나온 조건 기준). 이 경우 cancel_order/change_shipping_address/
               request_return을 호출하지 마라 — 실제로 처리를 요청한 게 아니므로 실행하거나 상담원에게 이관할 필요가 없다.

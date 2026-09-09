@@ -16,6 +16,8 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
     Page<Product> findByProductCodeContainingIgnoreCaseOrderByCreatedAtDesc(String productCode, Pageable pageable);
 
+    Page<Product> findByNameContainingIgnoreCaseOrderByCreatedAtDesc(String name, Pageable pageable);
+
     Page<Product> findByBrandOrderByCreatedAtDesc(String brand, Pageable pageable);
 
     @Query("SELECT p.brand FROM Product p WHERE p.brand IS NOT NULL AND p.brand <> '' "
