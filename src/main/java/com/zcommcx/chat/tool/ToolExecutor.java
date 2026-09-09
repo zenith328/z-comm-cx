@@ -9,6 +9,8 @@ import com.zcommcx.order.domain.OrderItem;
 import com.zcommcx.order.service.OrderService;
 import com.zcommcx.product.domain.Product;
 import com.zcommcx.product.service.ProductService;
+import com.zcommcx.review.ai.ReviewSummaryResult;
+import com.zcommcx.review.service.ReviewService;
 import com.zcommcx.ticket.domain.Ticket;
 import com.zcommcx.ticket.domain.TicketCategory;
 import com.zcommcx.ticket.service.TicketService;
@@ -38,11 +40,13 @@ public class ToolExecutor {
     private final ObjectMapper objectMapper;
     private final ProductService productService;
     private final InventoryService inventoryService;
+    private final ReviewService reviewService;
 
     public ObjectNode execute(String name, JsonNode args, String customerName, String customerPhone, String chatTranscript) {
         try {
             return switch (name) {
                 case "get_products" -> getProducts(args);
+                case "get_review_summary" -> getReviewSummary(args);
                 case "get_order_details" -> getOrderDetails(args);
                 case "get_my_orders" -> getMyOrders(args, customerName, customerPhone);
                 case "cancel_order" -> cancelOrder(args, customerName, customerPhone, chatTranscript);
@@ -72,6 +76,8 @@ public class ToolExecutor {
 
     private ObjectNode productSummary(Product product) {
         ObjectNode node = objectMapper.createObjectNode();
+        // get_review_summary 호출 시 상품을 특정하는 키로 쓰인다.
+        node.put("productCode", product.getProductCode());
         node.put("name", product.getName());
         node.put("brand", product.getBrand());
         node.put("category", product.getCategory());
@@ -93,6 +99,19 @@ public class ToolExecutor {
         }
         String trimmed = text.trim();
         return trimmed.length() > maxLength ? trimmed.substring(0, maxLength) + "..." : trimmed;
+    }
+
+    private ObjectNode getReviewSummary(JsonNode args) {
+        String productCode = text(args, "productCode");
+        String query = text(args, "query");
+        ReviewSummaryResult summaryResult = reviewService.summarizeVisibleReviews(
+                productCode, (query == null || query.isBlank()) ? "전반적으로 어떤 평가인지 요약해줘" : query);
+
+        ObjectNode result = objectMapper.createObjectNode();
+        result.put("success", true);
+        result.put("reviewCount", summaryResult.reviewCount());
+        result.put("summary", summaryResult.summary());
+        return result;
     }
 
     private ObjectNode getMyOrders(JsonNode args, String customerName, String customerPhone) {

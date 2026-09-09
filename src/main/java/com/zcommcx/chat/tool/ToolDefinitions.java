@@ -21,6 +21,7 @@ public class ToolDefinitions {
     public ArrayNode functionDeclarations() {
         ArrayNode declarations = objectMapper.createArrayNode();
         declarations.add(getProducts());
+        declarations.add(getReviewSummary());
         declarations.add(getOrderDetails());
         declarations.add(getMyOrders());
         declarations.add(cancelOrder());
@@ -51,6 +52,18 @@ public class ToolDefinitions {
                         + "고객이 특정 주문번호를 말하지 않고 자신의 주문 목록/이력을 물을 때 이 tool을 쓴다. "
                         + "상대적인 날짜 표현은 시스템 안내에 있는 오늘 날짜를 기준으로 YYYY-MM-DD로 계산해서 dateFrom/dateTo에 넘긴다.",
                 properties);
+    }
+
+    private ObjectNode getReviewSummary() {
+        ObjectNode properties = objectMapper.createObjectNode();
+        properties.set("productCode", stringProp("리뷰를 요약할 상품의 코드 (get_products 결과에 들어있는 productCode를 그대로 사용)"));
+        properties.set("query", stringProp("리뷰에서 특히 무엇이 궁금한지 (예: '장점이 뭐야', '사이즈 어때'). 생략하면 전반적인 요약."));
+        return tool(
+                "get_review_summary",
+                "특정 상품의 공개된 고객 리뷰를 AI가 요약해서 보여준다. 고객이 '리뷰 어때', '후기 보여줘', "
+                        + "'장점/단점 알려줘'처럼 리뷰 내용을 직접 물어볼 때만 사용한다. get_products로 상품 목록을 "
+                        + "보여줄 때 자동으로 붙이지 마라 — 고객이 명시적으로 요청했을 때만 호출한다.",
+                properties, "productCode");
     }
 
     private ObjectNode getOrderDetails() {
