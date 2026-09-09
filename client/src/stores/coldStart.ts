@@ -11,11 +11,16 @@ import type { AxiosInstance, InternalAxiosRequestConfig } from 'axios'
  */
 export const isWakingUp = ref(false)
 
-const WAKE_UP_THRESHOLD_MS = 2500
+const WAKE_UP_THRESHOLD_MS = 10000
 
 interface ColdStartConfig extends InternalAxiosRequestConfig {
   _coldStartTimer?: ReturnType<typeof setTimeout>
   _coldStartTriggered?: boolean
+  /**
+   * 이 요청은 원래도 오래 걸릴 수 있는(예: Gemini Function Calling 왕복) 요청이라
+   * 콜드스타트 배너 트리거 대상에서 제외한다. 요청 config에 `{ skipColdStartIndicator: true }`를 넘기면 된다.
+   */
+  skipColdStartIndicator?: boolean
 }
 
 let slowRequestCount = 0
@@ -35,6 +40,9 @@ function settle(config?: ColdStartConfig) {
 
 export function attachColdStartIndicator(instance: AxiosInstance): void {
   instance.interceptors.request.use((config: ColdStartConfig) => {
+    if (config.skipColdStartIndicator) {
+      return config
+    }
     config._coldStartTimer = setTimeout(() => {
       config._coldStartTriggered = true
       slowRequestCount += 1
