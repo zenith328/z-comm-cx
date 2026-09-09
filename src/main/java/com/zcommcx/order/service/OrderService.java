@@ -2,6 +2,7 @@ package com.zcommcx.order.service;
 
 import com.zcommcx.common.exception.NotFoundException;
 import com.zcommcx.inventory.service.InventoryService;
+import com.zcommcx.member.service.MemberService;
 import com.zcommcx.order.domain.Order;
 import com.zcommcx.order.domain.OrderItem;
 import com.zcommcx.order.domain.OrderRepository;
@@ -26,6 +27,7 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final ProductService productService;
     private final InventoryService inventoryService;
+    private final MemberService memberService;
 
     @Transactional
     public Order createOrder(OrderCreateRequest request) {
@@ -44,6 +46,10 @@ public class OrderService {
             inventoryService.reserve(product.getId(), itemRequest.quantity());
             order.addItem(new OrderItem(product, product.getName(), product.getPrice(), itemRequest.quantity()));
         }
+
+        // CX-Pay(유일한 결제수단)에서 결제금액을 차감한다. 잔액이 부족하면 여기서 예외가 나서
+        // 트랜잭션 전체(재고 예약 포함)가 롤백되고 주문은 생성되지 않는다.
+        memberService.use(request.customerName(), request.customerPhone(), order.totalAmount(), order.getOrderNo());
 
         return orderRepository.save(order);
     }
@@ -78,6 +84,7 @@ public class OrderService {
         for (OrderItem item : order.getItems()) {
             inventoryService.release(item.getProduct().getId(), item.getQuantity());
         }
+        memberService.refund(order.getCustomerName(), order.getCustomerPhone(), order.totalAmount(), order.getOrderNo());
         order.cancel(reason);
         return order;
     }

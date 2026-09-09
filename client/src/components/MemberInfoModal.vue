@@ -1,13 +1,35 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import MemberProfileForm from './MemberProfileForm.vue'
-import { session, updateProfile } from '../stores/session'
+import { chargeBalance, session, updateProfile } from '../stores/session'
 import type { Gender } from '../api/cs-types'
 
 const emit = defineEmits<{ close: [] }>()
 
 const saving = ref(false)
 const error = ref('')
+
+const chargeAmount = ref<number | null>(null)
+const charging = ref(false)
+const chargeError = ref('')
+
+async function handleCharge() {
+  if (!chargeAmount.value || chargeAmount.value <= 0) {
+    chargeError.value = '충전할 금액을 입력해주세요.'
+    return
+  }
+  charging.value = true
+  chargeError.value = ''
+  try {
+    await chargeBalance(chargeAmount.value)
+    chargeAmount.value = null
+  } catch (e) {
+    console.error(e)
+    chargeError.value = '충전에 실패했습니다. 잠시 후 다시 시도해주세요.'
+  } finally {
+    charging.value = false
+  }
+}
 
 function genderLabel(gender: Gender | null | undefined): string {
   if (gender === 'MALE') return '남성'
@@ -57,6 +79,17 @@ async function handleSubmit(payload: {
         }}
       </dd>
     </dl>
+
+    <section class="cx-pay">
+      <h4>CX-Pay 잔액</h4>
+      <p class="balance">{{ (session.current?.balance ?? 0).toLocaleString() }}원</p>
+      <div class="charge-row">
+        <input v-model.number="chargeAmount" type="number" min="1" step="1000" placeholder="충전할 금액" :disabled="charging" />
+        <button type="button" @click="handleCharge" :disabled="charging">{{ charging ? '충전 중...' : '충전' }}</button>
+      </div>
+      <p v-if="chargeError" class="error">{{ chargeError }}</p>
+    </section>
+
     <MemberProfileForm
       :initial-gender="session.current?.gender ?? null"
       :initial-birth-year="session.current?.birthYear ?? null"
@@ -95,6 +128,49 @@ async function handleSubmit(payload: {
   color: #a80000;
   font-size: 13px;
   margin: 0;
+}
+.cx-pay {
+  margin: 0 0 16px;
+  padding: 12px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  background: #f9fafb;
+}
+.cx-pay h4 {
+  margin: 0 0 4px;
+  font-size: 13px;
+  color: #888;
+}
+.cx-pay .balance {
+  margin: 0 0 10px;
+  font-size: 20px;
+  font-weight: 700;
+  color: #0056b3;
+}
+.charge-row {
+  display: flex;
+  gap: 8px;
+}
+.charge-row input {
+  flex: 1;
+  padding: 8px 10px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 14px;
+}
+.charge-row button {
+  padding: 8px 14px;
+  border: none;
+  border-radius: 6px;
+  background: #0056b3;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.charge-row button:disabled {
+  opacity: 0.6;
+  cursor: default;
 }
 .actions {
   display: flex;

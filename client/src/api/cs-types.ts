@@ -10,6 +10,8 @@ export interface MemberResponse {
   // "내 체형 맞춤 핏 요약"에서만 쓰인다. 세그먼트/개인화 매칭에는 관여하지 않는다.
   heightCm: number | null
   weightKg: number | null
+  // CX-Pay(이 사이트의 유일한 결제수단) 잔액.
+  balance: number
   createdAt: string
   updatedAt: string
 }
@@ -26,6 +28,12 @@ export interface MemberProfileUpdateRequest {
   birthYear: number | null
   heightCm: number | null
   weightKg: number | null
+}
+
+export interface MemberChargeRequest {
+  name: string
+  phone: string
+  amount: number
 }
 
 export type CustomerSegment =

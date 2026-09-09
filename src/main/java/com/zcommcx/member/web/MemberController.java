@@ -1,6 +1,7 @@
 package com.zcommcx.member.web;
 
 import com.zcommcx.member.service.MemberService;
+import com.zcommcx.member.web.dto.MemberChargeRequest;
 import com.zcommcx.member.web.dto.MemberLoginRequest;
 import com.zcommcx.member.web.dto.MemberLoginResponse;
 import com.zcommcx.member.web.dto.MemberProfileUpdateRequest;
@@ -30,5 +31,10 @@ public class MemberController {
         return MemberResponse.from(memberService.updateProfile(
                 request.name(), request.phone(), request.gender(), request.birthYear(),
                 request.heightCm(), request.weightKg()));
+    }
+
+    @PostMapping("/cx-pay/charge")
+    public MemberResponse charge(@Valid @RequestBody MemberChargeRequest request) {
+        return MemberResponse.from(memberService.charge(request.name(), request.phone(), request.amount()));
     }
 }

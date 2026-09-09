@@ -1,5 +1,5 @@
 import { reactive } from 'vue'
-import { loginMember, updateMemberProfile } from '../api/members'
+import { chargeMemberBalance, loginMember, updateMemberProfile } from '../api/members'
 import type { Gender } from '../api/cs-types'
 
 const STORAGE_KEY = 'z-comm-cx:session'
@@ -14,6 +14,8 @@ export interface CustomerSession {
   // "내 체형 맞춤 핏 요약"에서만 쓰인다. 세그먼트/개인화 매칭에는 관여하지 않는다.
   heightCm: number | null
   weightKg: number | null
+  // CX-Pay(이 사이트의 유일한 결제수단) 잔액.
+  balance: number
 }
 
 function readSession(): CustomerSession | null {
@@ -50,6 +52,7 @@ export async function login(customer: { name: string; phone: string }): Promise<
     age: result.member.age,
     heightCm: result.member.heightCm,
     weightKg: result.member.weightKg,
+    balance: result.member.balance,
   })
   return { firstLogin: result.firstLogin }
 }
@@ -78,7 +81,15 @@ export async function updateProfile(
     age: updated.age,
     heightCm: updated.heightCm,
     weightKg: updated.weightKg,
+    balance: updated.balance,
   })
+}
+
+/** CX-Pay 충전. "내 정보" 화면과 CS채팅 둘 다 결국 이 API를 거친다(채팅은 백엔드 tool을 통해서). */
+export async function chargeBalance(amount: number) {
+  if (!session.current) return
+  const updated = await chargeMemberBalance({ name: session.current.name, phone: session.current.phone, amount })
+  persist({ ...session.current, balance: updated.balance })
 }
 
 export function logout() {

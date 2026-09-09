@@ -50,6 +50,14 @@ public class Member {
 
     private Integer weightKg;
 
+    /**
+     * CX-Pay 잔액(원). 이 사이트의 유일한 결제수단으로, 미리 충전해두고 주문 시 차감한다
+     * (별도 PG 연동 없는 데모용 가상 잔액). 기존 회원 row에도 안전하게 컬럼을 추가하기 위해
+     * columnDefinition으로 기본값 0을 명시한다.
+     */
+    @Column(nullable = false, columnDefinition = "bigint default 0")
+    private long balance;
+
     @Column(nullable = false)
     private LocalDateTime createdAt;
 
@@ -78,5 +86,30 @@ public class Member {
     /** 출생년도 기준 현재 나이(연 나이: 현재연도 - 출생년도). 출생년도 미입력이면 null. */
     public Integer getAge() {
         return birthYear == null ? null : LocalDate.now().getYear() - birthYear;
+    }
+
+    /** CX-Pay 충전. */
+    public void charge(long amount) {
+        if (amount <= 0) {
+            throw new IllegalArgumentException("충전 금액은 0보다 커야 합니다.");
+        }
+        this.balance += amount;
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    /** CX-Pay 차감(결제). 잔액이 모자라면 주문/결제가 진행되지 않도록 예외를 던진다. */
+    public void deduct(long amount) {
+        if (amount > this.balance) {
+            throw new IllegalStateException(
+                    "CX-Pay 잔액이 부족합니다. (결제금액=%d원, 현재잔액=%d원)".formatted(amount, this.balance));
+        }
+        this.balance -= amount;
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    /** 주문 취소 시 차감했던 금액을 CX-Pay로 되돌린다. */
+    public void refund(long amount) {
+        this.balance += amount;
+        this.updatedAt = LocalDateTime.now();
     }
 }

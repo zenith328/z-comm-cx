@@ -23,6 +23,7 @@ public class ToolDefinitions {
         declarations.add(getProducts());
         declarations.add(getReviewSummary());
         declarations.add(getReviews());
+        declarations.add(chargeBalance());
         declarations.add(createOrder());
         declarations.add(getOrderDetails());
         declarations.add(getMyOrders());
@@ -81,6 +82,16 @@ public class ToolDefinitions {
                         + "보고 싶어할 때(예: '리뷰 몇 개만 보여줘', '별점 낮은 리뷰도 보여줘') 사용한다. 전반적인 "
                         + "평가만 궁금해하면 이 대신 get_review_summary를 사용하라.",
                 properties, "productCode");
+    }
+
+    private ObjectNode chargeBalance() {
+        ObjectNode properties = objectMapper.createObjectNode();
+        properties.set("amount", integerProp("충전할 금액(원)"));
+        return tool(
+                "charge_balance",
+                "고객의 CX-Pay(이 사이트의 유일한 결제수단, 사전 충전형 잔액) 잔액을 충전한다. 고객이 "
+                        + "'충전해줘', '만원만 충전해줘'처럼 명확히 금액을 말했을 때 사용한다.",
+                properties, "amount");
     }
 
     private ObjectNode createOrder() {

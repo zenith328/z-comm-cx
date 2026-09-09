@@ -1,5 +1,8 @@
 package com.zcommcx.member.service;
 
+import com.zcommcx.member.domain.CxPayTransaction;
+import com.zcommcx.member.domain.CxPayTransactionRepository;
+import com.zcommcx.member.domain.CxPayTransactionType;
 import com.zcommcx.member.domain.Gender;
 import com.zcommcx.member.domain.Member;
 import com.zcommcx.member.domain.MemberRepository;
@@ -7,12 +10,15 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class MemberService {
 
     private final MemberRepository memberRepository;
+    private final CxPayTransactionRepository cxPayTransactionRepository;
 
     /**
      * 이름+전화번호로 로그인한다. 처음 보는 조합이면 성별/출생년도 없이 새로 등록하고
@@ -37,5 +43,46 @@ public class MemberService {
                 .orElseGet(() -> memberRepository.save(new Member(name, phone, null, null, null, null)));
         member.updateProfile(gender, birthYear, heightCm, weightKg);
         return member;
+    }
+
+    /** CX-Pay 충전. 마이페이지 화면과 CS채팅 둘 다 이 메서드를 쓴다. */
+    @Transactional
+    public Member charge(String name, String phone, long amount) {
+        Member member = getOrCreate(name, phone);
+        member.charge(amount);
+        recordTransaction(member, CxPayTransactionType.CHARGE, amount, null);
+        return member;
+    }
+
+    /** CX-Pay 사용(결제 차감). 주문 생성 시 OrderService가 호출한다. */
+    @Transactional
+    public Member use(String name, String phone, long amount, String orderNo) {
+        Member member = getOrCreate(name, phone);
+        member.deduct(amount);
+        recordTransaction(member, CxPayTransactionType.USE, amount, orderNo);
+        return member;
+    }
+
+    /** CX-Pay 환불. 주문 취소 시 OrderService가 호출한다. */
+    @Transactional
+    public Member refund(String name, String phone, long amount, String orderNo) {
+        Member member = getOrCreate(name, phone);
+        member.refund(amount);
+        recordTransaction(member, CxPayTransactionType.REFUND, amount, orderNo);
+        return member;
+    }
+
+    public List<CxPayTransaction> getTransactionHistory(String name, String phone) {
+        return cxPayTransactionRepository.findByMemberNameAndMemberPhoneOrderByCreatedAtDesc(name, phone);
+    }
+
+    private Member getOrCreate(String name, String phone) {
+        return memberRepository.findByNameAndPhone(name, phone)
+                .orElseGet(() -> memberRepository.save(new Member(name, phone, null, null, null, null)));
+    }
+
+    private void recordTransaction(Member member, CxPayTransactionType type, long amount, String reason) {
+        cxPayTransactionRepository.save(new CxPayTransaction(
+                member.getName(), member.getPhone(), type, amount, member.getBalance(), reason));
     }
 }

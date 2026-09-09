@@ -4,6 +4,8 @@ import com.zcommcx.common.exception.NotFoundException;
 import com.zcommcx.guardrail.Guardrail;
 import com.zcommcx.guardrail.GuardrailDecision;
 import com.zcommcx.inventory.service.InventoryService;
+import com.zcommcx.member.domain.Member;
+import com.zcommcx.member.service.MemberService;
 import com.zcommcx.order.domain.Order;
 import com.zcommcx.order.domain.OrderItem;
 import com.zcommcx.order.service.OrderService;
@@ -46,6 +48,7 @@ public class ToolExecutor {
     private final ProductService productService;
     private final InventoryService inventoryService;
     private final ReviewService reviewService;
+    private final MemberService memberService;
 
     public ObjectNode execute(String name, JsonNode args, String customerName, String customerPhone, String chatTranscript) {
         try {
@@ -53,6 +56,7 @@ public class ToolExecutor {
                 case "get_products" -> getProducts(args);
                 case "get_review_summary" -> getReviewSummary(args);
                 case "get_reviews" -> getReviews(args);
+                case "charge_balance" -> chargeBalance(args, customerName, customerPhone);
                 case "create_order" -> createOrder(args, customerName, customerPhone);
                 case "get_order_details" -> getOrderDetails(args);
                 case "get_my_orders" -> getMyOrders(args, customerName, customerPhone);
@@ -152,6 +156,23 @@ public class ToolExecutor {
         node.put("content", truncate(review.getContent(), 300));
         node.put("createdAt", review.getCreatedAt().toLocalDate().toString());
         return node;
+    }
+
+    private ObjectNode chargeBalance(JsonNode args, String customerName, String customerPhone) {
+        if (customerName == null || customerName.isBlank() || customerPhone == null || customerPhone.isBlank()) {
+            return errorResult("로그인 정보가 없어 충전할 수 없습니다. 고객에게 로그인을 안내하거나 상담원에게 이관하세요.");
+        }
+        long amount = args != null && args.hasNonNull("amount") ? args.get("amount").asLong() : 0;
+        if (amount <= 0) {
+            return errorResult("충전 금액은 0보다 커야 합니다.");
+        }
+        Member member = memberService.charge(customerName, customerPhone, amount);
+
+        ObjectNode result = objectMapper.createObjectNode();
+        result.put("success", true);
+        result.put("chargedAmount", amount);
+        result.put("balance", member.getBalance());
+        return result;
     }
 
     private ObjectNode createOrder(JsonNode args, String customerName, String customerPhone) {

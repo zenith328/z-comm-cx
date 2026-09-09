@@ -16,6 +16,7 @@ public record MemberResponse(
         Integer age,
         Integer heightCm,
         Integer weightKg,
+        long balance,
         LocalDateTime createdAt,
         LocalDateTime updatedAt) {
 
@@ -28,6 +29,7 @@ public record MemberResponse(
                 member.getAge(),
                 member.getHeightCm(),
                 member.getWeightKg(),
+                member.getBalance(),
                 member.getCreatedAt(),
                 member.getUpdatedAt());
     }
