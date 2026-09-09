@@ -22,6 +22,7 @@ public class ToolDefinitions {
         ArrayNode declarations = objectMapper.createArrayNode();
         declarations.add(getProducts());
         declarations.add(getReviewSummary());
+        declarations.add(getReviews());
         declarations.add(getOrderDetails());
         declarations.add(getMyOrders());
         declarations.add(cancelOrder());
@@ -63,6 +64,21 @@ public class ToolDefinitions {
                 "특정 상품의 공개된 고객 리뷰를 AI가 요약해서 보여준다. 고객이 '리뷰 어때', '후기 보여줘', "
                         + "'장점/단점 알려줘'처럼 리뷰 내용을 직접 물어볼 때만 사용한다. get_products로 상품 목록을 "
                         + "보여줄 때 자동으로 붙이지 마라 — 고객이 명시적으로 요청했을 때만 호출한다.",
+                properties, "productCode");
+    }
+
+    private ObjectNode getReviews() {
+        ObjectNode properties = objectMapper.createObjectNode();
+        properties.set("productCode", stringProp("리뷰 원문을 조회할 상품의 코드 (get_products 결과의 productCode)"));
+        ObjectNode sort = stringProp("정렬 기준. 생략하면 최신순(LATEST).");
+        sort.set("enum", objectMapper.createArrayNode()
+                .add("LATEST").add("RATING_HIGH").add("RATING_LOW").add("POSITIVE_FIRST").add("NEGATIVE_FIRST"));
+        properties.set("sort", sort);
+        return tool(
+                "get_reviews",
+                "특정 상품의 개별 리뷰 원문을 최대 5건까지 조회한다. 전체적인 평가 요약이 아니라 실제 리뷰 내용을 "
+                        + "보고 싶어할 때(예: '리뷰 몇 개만 보여줘', '별점 낮은 리뷰도 보여줘') 사용한다. 전반적인 "
+                        + "평가만 궁금해하면 이 대신 get_review_summary를 사용하라.",
                 properties, "productCode");
     }
 

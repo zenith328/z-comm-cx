@@ -10,7 +10,10 @@ import com.zcommcx.order.service.OrderService;
 import com.zcommcx.product.domain.Product;
 import com.zcommcx.product.service.ProductService;
 import com.zcommcx.review.ai.ReviewSummaryResult;
+import com.zcommcx.review.domain.Review;
+import com.zcommcx.review.domain.ReviewSortOption;
 import com.zcommcx.review.service.ReviewService;
+import org.springframework.data.domain.Page;
 import com.zcommcx.ticket.domain.Ticket;
 import com.zcommcx.ticket.domain.TicketCategory;
 import com.zcommcx.ticket.service.TicketService;
@@ -47,6 +50,7 @@ public class ToolExecutor {
             return switch (name) {
                 case "get_products" -> getProducts(args);
                 case "get_review_summary" -> getReviewSummary(args);
+                case "get_reviews" -> getReviews(args);
                 case "get_order_details" -> getOrderDetails(args);
                 case "get_my_orders" -> getMyOrders(args, customerName, customerPhone);
                 case "cancel_order" -> cancelOrder(args, customerName, customerPhone, chatTranscript);
@@ -62,30 +66,30 @@ public class ToolExecutor {
 
     private ObjectNode getProducts(JsonNode args) {
         List<Product> products = productService.searchForChat(text(args, "keyword"), text(args, "brand"), 10);
+        // 여러 건이면 목록 요약이 목적이므로 설명을 짧게 자르고, 검색이 상품 하나로 좁혀졌으면
+        // 고객이 그 상품 자체를 자세히 보고 싶어하는 것이므로 설명을 전문 그대로 준다.
+        int descriptionLimit = products.size() == 1 ? Integer.MAX_VALUE : 300;
 
         ObjectNode result = objectMapper.createObjectNode();
         result.put("success", true);
         result.put("count", products.size());
         ArrayNode productsNode = objectMapper.createArrayNode();
         for (Product product : products) {
-            productsNode.add(productSummary(product));
+            productsNode.add(productSummary(product, descriptionLimit));
         }
         result.set("products", productsNode);
         return result;
     }
 
-    private ObjectNode productSummary(Product product) {
+    private ObjectNode productSummary(Product product, int descriptionLimit) {
         ObjectNode node = objectMapper.createObjectNode();
-        // get_review_summary 호출 시 상품을 특정하는 키로 쓰인다.
+        // get_review_summary/get_reviews 호출 시 상품을 특정하는 키로 쓰인다.
         node.put("productCode", product.getProductCode());
         node.put("name", product.getName());
         node.put("brand", product.getBrand());
         node.put("category", product.getCategory());
         node.put("price", product.getPrice());
-        // 결과가 최대 10건까지 나올 수 있어 매번 전체 설명을 다 보내면 토큰을 많이 쓰므로
-        // 적당히 잘라서 넘긴다 — 목록 단계 요약에는 충분하고, 고객이 특정 상품의 설명을
-        // 구체적으로 물으면 이 정도로도 답할 수 있다.
-        node.put("description", truncate(product.getDescription(), 300));
+        node.put("description", truncate(product.getDescription(), descriptionLimit));
         int available = inventoryService.findByProductId(product.getId())
                 .map(inv -> inv.getQuantity() - inv.getReservedQuantity())
                 .orElse(0);
@@ -112,6 +116,39 @@ public class ToolExecutor {
         result.put("reviewCount", summaryResult.reviewCount());
         result.put("summary", summaryResult.summary());
         return result;
+    }
+
+    private ObjectNode getReviews(JsonNode args) {
+        String productCode = text(args, "productCode");
+        ReviewSortOption sort = ReviewSortOption.LATEST;
+        String sortText = text(args, "sort");
+        if (sortText != null && !sortText.isBlank()) {
+            try {
+                sort = ReviewSortOption.valueOf(sortText.trim().toUpperCase());
+            } catch (IllegalArgumentException ignored) {
+                // 알 수 없는 정렬값이 오면 기본값(LATEST)으로 진행한다.
+            }
+        }
+        Page<Review> reviewPage = reviewService.findVisiblePage(productCode, 0, 5, null, null, null, sort);
+
+        ObjectNode result = objectMapper.createObjectNode();
+        result.put("success", true);
+        result.put("totalCount", reviewPage.getTotalElements());
+        ArrayNode reviewsNode = objectMapper.createArrayNode();
+        for (Review review : reviewPage.getContent()) {
+            reviewsNode.add(reviewSummary(review));
+        }
+        result.set("reviews", reviewsNode);
+        return result;
+    }
+
+    private ObjectNode reviewSummary(Review review) {
+        ObjectNode node = objectMapper.createObjectNode();
+        node.put("rating", review.getRating());
+        node.put("hasPhoto", review.isHasPhoto());
+        node.put("content", truncate(review.getContent(), 300));
+        node.put("createdAt", review.getCreatedAt().toLocalDate().toString());
+        return node;
     }
 
     private ObjectNode getMyOrders(JsonNode args, String customerName, String customerPhone) {
