@@ -56,11 +56,16 @@ function startListeningOnce() {
     listening.value = true
   }
   r.onresult = (event) => {
+    const transcript = event.results[event.results.length - 1][0].transcript.trim()
+    // 답변을 읽어주는 도중이면, 마이크가 스피커 소리(AI 자신의 말)를 되받아 인식한 것일 수
+    // 있다. 인식된 내용이 지금 읽고 있는 문장 안에 그대로 들어있으면 에코로 보고 무시한다
+    // (완벽하지 않음 — 인식이 다르게 잘못 옮겨지면 걸러지지 않을 수 있다).
+    if (speaking.value && isLikelyEcho(transcript, currentSpokenText)) {
+      return
+    }
     gotResult = true
-    const transcript = event.results[event.results.length - 1][0].transcript
-    input.value = transcript.trim()
-    // 답변을 읽어주는 중에 사용자가 끼어들어 말하면(barge-in), 음성 입력을 우선하고
-    // 재생 중이던 TTS는 즉시 멈춘다.
+    input.value = transcript
+    // 진짜 사용자 발화로 판단되면 끼어들기(barge-in)로 처리하고, 재생 중이던 TTS는 멈춘다.
     if (speaking.value && ttsSupported) {
       window.speechSynthesis.cancel()
     }
@@ -115,24 +120,44 @@ function refreshPreferredVoice() {
   preferredVoice = koreanVoices.find((v) => !v.localService) ?? koreanVoices[0]
 }
 
+// speak()로 지금 읽어주고 있는 텍스트. 에코 필터링(isLikelyEcho)이 마이크로 들어온
+// 인식 결과와 비교하는 기준으로 쓴다.
+let currentSpokenText = ''
+
 function speak(text: string): Promise<void> {
   if (!ttsSupported || !text.trim()) return Promise.resolve()
 
   return new Promise((resolve) => {
-    const utterance = new SpeechSynthesisUtterance(stripMarkdownForSpeech(text))
+    const spokenText = stripMarkdownForSpeech(text)
+    const utterance = new SpeechSynthesisUtterance(spokenText)
     utterance.lang = 'ko-KR'
     if (preferredVoice) utterance.voice = preferredVoice
+    currentSpokenText = spokenText
     speaking.value = true
     utterance.onend = () => {
       speaking.value = false
+      currentSpokenText = ''
       resolve()
     }
     utterance.onerror = () => {
       speaking.value = false
+      currentSpokenText = ''
       resolve()
     }
     window.speechSynthesis.speak(utterance)
   })
+}
+
+function normalizeForCompare(text: string): string {
+  return text.replace(/[^\p{L}\p{N}]+/gu, '').toLowerCase()
+}
+
+/** 인식된 문장이 지금 읽어주고 있는 문장 안에 그대로 포함되면 에코(자기 목소리 되받음)로 본다. */
+function isLikelyEcho(transcript: string, spokenText: string): boolean {
+  const t = normalizeForCompare(transcript)
+  const s = normalizeForCompare(spokenText)
+  if (!t || !s) return false
+  return s.includes(t)
 }
 
 function stripMarkdownForSpeech(text: string): string {
