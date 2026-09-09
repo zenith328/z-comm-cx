@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ref, watch } from 'vue'
 import '../styles/admin.css'
 import Pagination from '../components/Pagination.vue'
 import { useMembers } from '../composables/useMembers'
@@ -6,7 +7,16 @@ import type { MemberResponse } from '../api/cs-types'
 import { maskName, maskPhone } from '../utils/mask'
 import { formatDateTime } from '../utils/format'
 
-const { members, loading, errorMessage, page, totalPages, totalElements, refresh, goToPage } = useMembers()
+const { members, loading, errorMessage, page, totalPages, totalElements, refresh, goToPage, setSearchQuery } =
+  useMembers()
+
+const searchInput = ref('')
+
+let debounceTimer: ReturnType<typeof setTimeout> | undefined
+watch(searchInput, (value) => {
+  clearTimeout(debounceTimer)
+  debounceTimer = setTimeout(() => setSearchQuery(value), 300)
+})
 
 function genderLabel(gender: MemberResponse['gender']): string {
   if (gender === 'MALE') return '남성'
@@ -26,11 +36,15 @@ function bodyLabel(member: MemberResponse): string {
 
     <div class="admin-toolbar">
       <button type="button" :disabled="loading" @click="refresh">새로고침</button>
+      <label class="admin-filter admin-filter-plain">
+        <span class="admin-filter-label">검색</span>
+        <input v-model="searchInput" type="text" placeholder="이름 또는 전화번호" />
+      </label>
     </div>
 
     <p v-if="errorMessage" class="admin-error">{{ errorMessage }}</p>
     <p v-else-if="loading">불러오는 중...</p>
-    <p v-else-if="members.length === 0">가입한 회원이 없습니다.</p>
+    <p v-else-if="members.length === 0">조건에 맞는 회원이 없습니다.</p>
 
     <template v-else>
       <table class="admin-table">

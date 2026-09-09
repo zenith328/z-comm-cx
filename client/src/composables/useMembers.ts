@@ -12,11 +12,16 @@ export function useMembers(options: { pageSize?: number } = {}) {
   const page = ref(0)
   const totalPages = ref(1)
   const totalElements = ref(0)
+  const searchQuery = ref('')
 
   async function refresh() {
     loading.value = true
     try {
-      const result = await fetchMembers({ page: page.value, size: pageSize })
+      const result = await fetchMembers({
+        page: page.value,
+        size: pageSize,
+        search: searchQuery.value.trim() || undefined,
+      })
       members.value = result.content
       totalPages.value = result.totalPages
       totalElements.value = result.totalElements
@@ -35,6 +40,12 @@ export function useMembers(options: { pageSize?: number } = {}) {
     refresh()
   }
 
+  function setSearchQuery(value: string) {
+    searchQuery.value = value
+    page.value = 0
+    refresh()
+  }
+
   onMounted(() => {
     refresh()
   })
@@ -46,7 +57,9 @@ export function useMembers(options: { pageSize?: number } = {}) {
     page,
     totalPages,
     totalElements,
+    searchQuery,
     refresh,
     goToPage,
+    setSearchQuery,
   }
 }

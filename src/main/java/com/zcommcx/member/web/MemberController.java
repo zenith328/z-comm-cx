@@ -30,8 +30,9 @@ public class MemberController {
     @GetMapping
     public PageResponse<MemberResponse> getMembers(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        Page<Member> members = memberService.list(page, size);
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String search) {
+        Page<Member> members = memberService.list(page, size, search);
         return PageResponse.from(members, MemberResponse::from);
     }
 

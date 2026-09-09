@@ -9,6 +9,7 @@ import com.zcommcx.member.domain.MemberRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -79,9 +80,17 @@ public class MemberService {
         return cxPayTransactionRepository.findByMemberNameAndMemberPhoneOrderByCreatedAtDesc(name, phone);
     }
 
-    /** 운영자 회원관리 화면용 목록 조회. 최근 가입한 회원부터 보여준다. */
-    public Page<Member> list(int page, int size) {
-        return memberRepository.findAll(PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt")));
+    /**
+     * 운영자 회원관리 화면용 목록 조회. 최근 가입한 회원부터 보여준다.
+     * search가 있으면 이름 또는 전화번호에 포함되는 회원만 찾는다.
+     */
+    public Page<Member> list(int page, int size, String search) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        if (search == null || search.isBlank()) {
+            return memberRepository.findAll(pageable);
+        }
+        String query = search.trim();
+        return memberRepository.findByNameContainingOrPhoneContaining(query, query, pageable);
     }
 
     private Member getOrCreate(String name, String phone) {
