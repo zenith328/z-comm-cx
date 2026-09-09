@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { nextTick, onMounted, ref } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { sendChatMessage } from '../api/chat'
 import { session } from '../stores/session'
@@ -25,38 +25,117 @@ const messageInput = ref<HTMLInputElement | null>(null)
 
 const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition
 const voiceSupported = !!SpeechRecognitionCtor
+const ttsSupported = 'speechSynthesis' in window
+
 const listening = ref(false)
+const speaking = ref(false)
+// 대화 모드: 켜져 있는 동안은 인식 -> 자동 전송 -> 응답 음성 재생 -> 재청취를 반복한다.
+const voiceMode = ref(false)
 let recognition: SpeechRecognition | null = null
 
-function startVoiceInput() {
-  if (!SpeechRecognitionCtor || sending.value || listening.value) return
+const voiceStatus = computed(() => {
+  if (!voiceMode.value) return null
+  if (listening.value) return '듣고 있어요...'
+  if (speaking.value) return '답변을 읽어드리고 있어요...'
+  if (sending.value) return '답변을 준비하고 있어요...'
+  return '대화 모드 켜짐 - 말씀해 주세요'
+})
 
-  recognition = new SpeechRecognitionCtor()
-  recognition.lang = 'ko-KR'
-  recognition.continuous = false
-  recognition.interimResults = false
+function startListeningOnce() {
+  if (!SpeechRecognitionCtor) return
 
-  recognition.onstart = () => {
+  let gotResult = false
+  const r = new SpeechRecognitionCtor()
+  recognition = r
+  r.lang = 'ko-KR'
+  r.continuous = false
+  r.interimResults = false
+
+  r.onstart = () => {
     listening.value = true
   }
-  recognition.onresult = (event) => {
+  r.onresult = (event) => {
+    gotResult = true
     const transcript = event.results[event.results.length - 1][0].transcript
     input.value = transcript.trim()
   }
-  recognition.onerror = () => {
-    listening.value = false
+  r.onerror = (event) => {
+    // 권한 거부 등 복구 불가능한 에러는 무한 재시도를 막기 위해 대화 모드 자체를 끈다.
+    if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+      voiceMode.value = false
+    }
   }
-  recognition.onend = () => {
+  r.onend = () => {
     listening.value = false
+    // 이 사이 다른 인식 세션으로 교체됐다면(중복 시작 방지) 아무것도 하지 않는다.
+    if (recognition !== r) return
+    void handleRecognitionEnd(gotResult)
+  }
+
+  r.start()
+}
+
+async function handleRecognitionEnd(gotResult: boolean) {
+  if (gotResult && input.value.trim()) {
+    await send()
+    if (voiceMode.value) {
+      const last = messages.value[messages.value.length - 1]
+      if (last && last.role !== 'user') {
+        await speak(last.text)
+      }
+    }
+  }
+  if (voiceMode.value) {
+    startListeningOnce()
+  } else {
     messageInput.value?.focus()
   }
-
-  recognition.start()
 }
 
-function stopVoiceInput() {
-  recognition?.stop()
+function speak(text: string): Promise<void> {
+  if (!ttsSupported || !text.trim()) return Promise.resolve()
+
+  return new Promise((resolve) => {
+    const utterance = new SpeechSynthesisUtterance(stripMarkdownForSpeech(text))
+    utterance.lang = 'ko-KR'
+    speaking.value = true
+    utterance.onend = () => {
+      speaking.value = false
+      resolve()
+    }
+    utterance.onerror = () => {
+      speaking.value = false
+      resolve()
+    }
+    window.speechSynthesis.speak(utterance)
+  })
 }
+
+function stripMarkdownForSpeech(text: string): string {
+  return text
+    .replace(/\[(.*?)\]\(.*?\)/g, '$1')
+    .replace(/[*_`#>]/g, '')
+    .replace(/^\s*-\s+/gm, '')
+    .trim()
+}
+
+function toggleVoiceMode() {
+  if (voiceMode.value) {
+    voiceMode.value = false
+    recognition?.abort()
+    if (ttsSupported) window.speechSynthesis.cancel()
+    speaking.value = false
+  } else {
+    voiceMode.value = true
+    startListeningOnce()
+  }
+}
+
+onUnmounted(() => {
+  voiceMode.value = false
+  recognition?.abort()
+  if (ttsSupported) window.speechSynthesis.cancel()
+})
 
 onMounted(() => {
   if (session.current) {
@@ -117,22 +196,23 @@ async function scrollToBottom() {
       <div v-if="sending" class="bubble assistant pending">답변을 준비하고 있어요...</div>
     </div>
 
+    <div v-if="voiceStatus" class="voice-status" :class="{ recording: listening, speaking }">{{ voiceStatus }}</div>
+
     <form class="composer" @submit.prevent="send">
       <input
         ref="messageInput"
         v-model="input"
         type="text"
-        :placeholder="listening ? '듣고 있어요...' : '예: 주문번호 ORD-XXXX 취소해주세요'"
+        placeholder="예: 주문번호 ORD-XXXX 취소해주세요"
         :disabled="sending"
       />
       <button
         v-if="voiceSupported"
         type="button"
         class="mic-btn"
-        :class="{ recording: listening }"
-        :disabled="sending"
-        :title="listening ? '음성 입력 중지' : '음성으로 입력'"
-        @click="listening ? stopVoiceInput() : startVoiceInput()"
+        :class="{ recording: listening, active: voiceMode }"
+        :title="voiceMode ? '대화 모드 끄기' : '대화 모드로 시작 (계속 말하면 자동 전송)'"
+        @click="toggleVoiceMode"
       >🎤</button>
       <button type="submit" :disabled="sending || !input.trim()">보내기</button>
     </form>
@@ -217,6 +297,11 @@ async function scrollToBottom() {
   color: #333;
   padding: 10px 14px !important;
 }
+.mic-btn.active {
+  background: #e6f0fb;
+  border-color: #0056b3 !important;
+  color: #0056b3;
+}
 .mic-btn.recording {
   background: #fdeaea;
   border-color: #f5b5b5 !important;
@@ -226,5 +311,21 @@ async function scrollToBottom() {
 @keyframes mic-pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.5; }
+}
+.voice-status {
+  padding: 6px 12px;
+  font-size: 13px;
+  color: #0056b3;
+  background: #eef5fc;
+  border-top: 1px solid #e0e0e0;
+  text-align: center;
+}
+.voice-status.recording {
+  color: #a33;
+  background: #fdeaea;
+}
+.voice-status.speaking {
+  color: #0a7d3a;
+  background: #eaf7ef;
 }
 </style>
