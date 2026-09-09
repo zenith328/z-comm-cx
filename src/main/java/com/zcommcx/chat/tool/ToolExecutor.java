@@ -7,6 +7,8 @@ import com.zcommcx.inventory.service.InventoryService;
 import com.zcommcx.order.domain.Order;
 import com.zcommcx.order.domain.OrderItem;
 import com.zcommcx.order.service.OrderService;
+import com.zcommcx.order.web.dto.OrderCreateRequest;
+import com.zcommcx.order.web.dto.OrderItemRequest;
 import com.zcommcx.product.domain.Product;
 import com.zcommcx.product.service.ProductService;
 import com.zcommcx.review.ai.ReviewSummaryResult;
@@ -51,6 +53,7 @@ public class ToolExecutor {
                 case "get_products" -> getProducts(args);
                 case "get_review_summary" -> getReviewSummary(args);
                 case "get_reviews" -> getReviews(args);
+                case "create_order" -> createOrder(args, customerName, customerPhone);
                 case "get_order_details" -> getOrderDetails(args);
                 case "get_my_orders" -> getMyOrders(args, customerName, customerPhone);
                 case "cancel_order" -> cancelOrder(args, customerName, customerPhone, chatTranscript);
@@ -149,6 +152,26 @@ public class ToolExecutor {
         node.put("content", truncate(review.getContent(), 300));
         node.put("createdAt", review.getCreatedAt().toLocalDate().toString());
         return node;
+    }
+
+    private ObjectNode createOrder(JsonNode args, String customerName, String customerPhone) {
+        if (customerName == null || customerName.isBlank() || customerPhone == null || customerPhone.isBlank()) {
+            return errorResult("로그인 정보가 없어 주문을 생성할 수 없습니다. 고객에게 로그인을 안내하거나 상담원에게 이관하세요.");
+        }
+        Product product = productService.getByProductCode(text(args, "productCode"));
+        int quantity = args != null && args.hasNonNull("quantity") ? args.get("quantity").asInt() : 1;
+        if (quantity <= 0) {
+            return errorResult("주문 수량은 1개 이상이어야 합니다.");
+        }
+
+        OrderCreateRequest request = new OrderCreateRequest(
+                customerName, customerPhone,
+                text(args, "recipientName"), text(args, "recipientPhone"),
+                text(args, "zipcode"), text(args, "address1"), text(args, "address2"),
+                List.of(new OrderItemRequest(product.getId(), quantity)));
+
+        Order order = orderService.createOrder(request);
+        return orderResult(order);
     }
 
     private ObjectNode getMyOrders(JsonNode args, String customerName, String customerPhone) {

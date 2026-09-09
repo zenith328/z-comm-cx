@@ -23,6 +23,7 @@ public class ToolDefinitions {
         declarations.add(getProducts());
         declarations.add(getReviewSummary());
         declarations.add(getReviews());
+        declarations.add(createOrder());
         declarations.add(getOrderDetails());
         declarations.add(getMyOrders());
         declarations.add(cancelOrder());
@@ -80,6 +81,22 @@ public class ToolDefinitions {
                         + "보고 싶어할 때(예: '리뷰 몇 개만 보여줘', '별점 낮은 리뷰도 보여줘') 사용한다. 전반적인 "
                         + "평가만 궁금해하면 이 대신 get_review_summary를 사용하라.",
                 properties, "productCode");
+    }
+
+    private ObjectNode createOrder() {
+        ObjectNode properties = objectMapper.createObjectNode();
+        properties.set("productCode", stringProp("주문할 상품 코드 (get_products 결과의 productCode)"));
+        properties.set("quantity", integerProp("주문 수량"));
+        properties.set("recipientName", stringProp("수령인 이름"));
+        properties.set("recipientPhone", stringProp("수령인 연락처"));
+        properties.set("zipcode", stringProp("우편번호 (선택)"));
+        properties.set("address1", stringProp("배송받을 기본주소"));
+        properties.set("address2", stringProp("배송받을 상세주소 (선택)"));
+        return tool(
+                "create_order",
+                "상품을 주문한다. 이 쇼핑몰은 결제 절차가 없어 호출하면 바로 주문이 생성된다. 수령인 이름/연락처/"
+                        + "배송주소를 모두 확인하고 고객에게 최종 확인을 받은 뒤에만 호출하라.",
+                properties, "productCode", "quantity", "recipientName", "recipientPhone", "address1");
     }
 
     private ObjectNode getOrderDetails() {
@@ -163,6 +180,13 @@ public class ToolDefinitions {
     private ObjectNode stringProp(String description) {
         ObjectNode node = objectMapper.createObjectNode();
         node.put("type", "STRING");
+        node.put("description", description);
+        return node;
+    }
+
+    private ObjectNode integerProp(String description) {
+        ObjectNode node = objectMapper.createObjectNode();
+        node.put("type", "INTEGER");
         node.put("description", description);
         return node;
     }

@@ -28,6 +28,7 @@ public class ChatService {
 
     private static final Map<String, String> TOOL_LABELS = Map.ofEntries(
             Map.entry("get_products", "상품 조회"),
+            Map.entry("create_order", "주문 생성"),
             Map.entry("get_review_summary", "리뷰 요약"),
             Map.entry("get_reviews", "리뷰 목록 조회"),
             Map.entry("get_order_details", "주문 조회"),
@@ -39,11 +40,17 @@ public class ChatService {
 
     private static final String SYSTEM_INSTRUCTION_TEMPLATE = """
             당신은 온라인 쇼핑몰의 CS 상담 AI다. 오늘 날짜는 %s이다.
-            고객의 주문 취소/배송지 변경/반품 요청을 도구(tool)를 호출해 직접 처리하고, 상품 문의에도 답한다.
+            고객의 주문 생성/취소/배송지 변경/반품 요청을 도구(tool)를 호출해 직접 처리하고, 상품 문의에도 답한다.
             - 고객이 "상품 보여줘", "~있어?", "무슨 브랜드 있어?" 처럼 상품을 찾거나 둘러보고 싶어하면 get_products를
               사용하라. 상품명 키워드나 브랜드로 좁혀서 찾을 수 있고, 둘 다 없으면 최신 상품을 보여준다. 결과가 여러 건이면
               전부 나열하지 말고 상품명/가격/재고 위주로 간결하게 요약해서 안내하라. 이건 조회일 뿐이므로 확인 없이 바로
               실행해도 된다.
+            - 고객이 "이거 주문할래", "주문해줘"처럼 상품 주문을 요청하면, 수령인 이름/연락처/배송주소(기본주소는
+              필수, 우편번호·상세주소는 선택)를 아직 모르면 먼저 물어봐라. 필요한 정보가 다 모이면 곧바로
+              create_order를 호출하지 말고, 어떤 상품을 몇 개 어디로 보낼지 요약해서 고객에게 한 번 더 확인을
+              요청하라. 이 사이트는 결제 절차 없이 확인 즉시 주문이 생성된다는 점을 참고하라. 고객이 "네", "맞아요",
+              "주문해줘"처럼 명확히 확인한 다음에만 실제로 create_order를 호출하라. 로그인 정보가 없어 실패하면
+              고객에게 로그인을 안내하라.
             - 고객이 "리뷰 어때", "후기 보여줘", "장점/단점 알려줘"처럼 전반적인 평가를 물어볼 때만
               get_review_summary를, "리뷰 몇 개만 보여줘", "실제 리뷰 보여줘"처럼 리뷰 원문을 직접 보고 싶어할
               때만 get_reviews를 사용하라. productCode는 get_products 결과에서 얻는다. 상품을 보여줄 때
