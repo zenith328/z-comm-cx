@@ -62,12 +62,19 @@ public class ChatService {
         for (int round = 0; round < MAX_TOOL_CALL_ROUNDS; round++) {
             JsonNode response = geminiClient.generateContent(history, toolDefinitions.functionDeclarations(), systemInstruction);
             JsonNode modelContent = response.at("/candidates/0/content");
-            if (modelContent.isMissingNode()) {
-                throw new IllegalStateException("Gemini로부터 유효한 응답을 받지 못했습니다. response=" + response);
+            JsonNode partsNode = modelContent.get("parts");
+            // 안전 필터에 걸리거나(finishReason=SAFETY 등) 응답이 비정상적으로 잘리면
+            // content는 있어도 parts가 없을 수 있다. 검증 전에 history에 먼저 넣으면
+            // 이후 이 세션의 모든 턴이 오염된 히스토리를 계속 Gemini에 보내게 되므로,
+            // history.add()보다 반드시 먼저 검증한다.
+            if (modelContent.isMissingNode() || partsNode == null || !partsNode.isArray()) {
+                String finishReason = response.at("/candidates/0/finishReason").asText("UNKNOWN");
+                throw new IllegalStateException(
+                        "Gemini로부터 유효한 응답을 받지 못했습니다(finishReason=" + finishReason + "). response=" + response);
             }
+            ArrayNode parts = (ArrayNode) partsNode;
             history.add(modelContent);
 
-            ArrayNode parts = (ArrayNode) modelContent.get("parts");
             List<JsonNode> functionCalls = extractFunctionCalls(parts);
             if (functionCalls.isEmpty()) {
                 return extractText(parts);
