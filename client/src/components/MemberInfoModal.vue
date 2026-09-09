@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import MemberProfileForm from './MemberProfileForm.vue'
-import { chargeBalance, session, updateProfile } from '../stores/session'
+import CxPayChargeModal from './CxPayChargeModal.vue'
+import { session, updateProfile } from '../stores/session'
 import type { Gender } from '../api/cs-types'
 
 const emit = defineEmits<{ close: [] }>()
@@ -9,27 +10,7 @@ const emit = defineEmits<{ close: [] }>()
 const saving = ref(false)
 const error = ref('')
 
-const chargeAmount = ref<number | null>(null)
-const charging = ref(false)
-const chargeError = ref('')
-
-async function handleCharge() {
-  if (!chargeAmount.value || chargeAmount.value <= 0) {
-    chargeError.value = '충전할 금액을 입력해주세요.'
-    return
-  }
-  charging.value = true
-  chargeError.value = ''
-  try {
-    await chargeBalance(chargeAmount.value)
-    chargeAmount.value = null
-  } catch (e) {
-    console.error(e)
-    chargeError.value = '충전에 실패했습니다. 잠시 후 다시 시도해주세요.'
-  } finally {
-    charging.value = false
-  }
-}
+const chargeModalOpen = ref(false)
 
 function genderLabel(gender: Gender | null | undefined): string {
   if (gender === 'MALE') return '남성'
@@ -81,14 +62,16 @@ async function handleSubmit(payload: {
     </dl>
 
     <section class="cx-pay">
-      <h4>CX-Pay 잔액</h4>
-      <p class="balance">{{ (session.current?.balance ?? 0).toLocaleString() }}원</p>
-      <div class="charge-row">
-        <input v-model.number="chargeAmount" type="number" min="1" step="1000" placeholder="충전할 금액" :disabled="charging" />
-        <button type="button" @click="handleCharge" :disabled="charging">{{ charging ? '충전 중...' : '충전' }}</button>
-      </div>
-      <p v-if="chargeError" class="error">{{ chargeError }}</p>
+      <span class="label">CX-Pay 잔액</span>
+      <span class="balance">{{ (session.current?.balance ?? 0).toLocaleString() }}원</span>
+      <button type="button" class="charge-btn" @click="chargeModalOpen = true">충전하기</button>
     </section>
+
+    <div v-if="chargeModalOpen" class="nested-overlay" @click.self="chargeModalOpen = false">
+      <div class="nested-modal">
+        <CxPayChargeModal @close="chargeModalOpen = false" />
+      </div>
+    </div>
 
     <MemberProfileForm
       :initial-gender="session.current?.gender ?? null"
@@ -130,36 +113,27 @@ async function handleSubmit(payload: {
   margin: 0;
 }
 .cx-pay {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   margin: 0 0 16px;
-  padding: 12px;
+  padding: 10px 12px;
   border: 1px solid #e0e0e0;
   border-radius: 8px;
   background: #f9fafb;
-}
-.cx-pay h4 {
-  margin: 0 0 4px;
   font-size: 13px;
+}
+.cx-pay .label {
   color: #888;
 }
 .cx-pay .balance {
-  margin: 0 0 10px;
-  font-size: 20px;
+  flex: 1;
+  font-size: 16px;
   font-weight: 700;
   color: #0056b3;
 }
-.charge-row {
-  display: flex;
-  gap: 8px;
-}
-.charge-row input {
-  flex: 1;
-  padding: 8px 10px;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  font-size: 14px;
-}
-.charge-row button {
-  padding: 8px 14px;
+.charge-btn {
+  padding: 6px 12px;
   border: none;
   border-radius: 6px;
   background: #0056b3;
@@ -168,9 +142,21 @@ async function handleSubmit(payload: {
   font-weight: 600;
   cursor: pointer;
 }
-.charge-row button:disabled {
-  opacity: 0.6;
-  cursor: default;
+.nested-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.35);
+}
+.nested-modal {
+  width: 300px;
+  padding: 24px;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
 }
 .actions {
   display: flex;
