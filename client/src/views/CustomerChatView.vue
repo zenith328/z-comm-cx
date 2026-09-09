@@ -35,6 +35,7 @@ let recognition: SpeechRecognition | null = null
 
 const voiceStatus = computed(() => {
   if (!voiceMode.value) return null
+  if (listening.value && speaking.value) return '답변을 읽어드리는 중이에요. 말씀하시면 바로 끼어들 수 있어요.'
   if (listening.value) return '듣고 있어요...'
   if (speaking.value) return '답변을 읽어드리고 있어요...'
   if (sending.value) return '답변을 준비하고 있어요...'
@@ -58,6 +59,11 @@ function startListeningOnce() {
     gotResult = true
     const transcript = event.results[event.results.length - 1][0].transcript
     input.value = transcript.trim()
+    // 답변을 읽어주는 중에 사용자가 끼어들어 말하면(barge-in), 음성 입력을 우선하고
+    // 재생 중이던 TTS는 즉시 멈춘다.
+    if (speaking.value && ttsSupported) {
+      window.speechSynthesis.cancel()
+    }
   }
   r.onerror = (event) => {
     // 권한 거부 등 복구 불가능한 에러는 무한 재시도를 막기 위해 대화 모드 자체를 끈다.
@@ -81,7 +87,10 @@ async function handleRecognitionEnd(gotResult: boolean) {
     if (voiceMode.value) {
       const last = messages.value[messages.value.length - 1]
       if (last && last.role !== 'user') {
-        await speak(last.text)
+        // TTS 재생이 끝나기를 기다리지 않고 곧바로 재청취를 시작한다. 이렇게 해야 답변을
+        // 읽어주는 도중에도 마이크가 켜져 있어서 사용자가 끼어들어 말할 수 있다(barge-in).
+        // speak()는 onresult에서 감지된 끼어들기로 인해 도중에 취소될 수 있다.
+        void speak(last.text)
       }
     }
   }
