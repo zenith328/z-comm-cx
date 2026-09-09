@@ -35,7 +35,7 @@ let recognition: SpeechRecognition | null = null
 
 const voiceStatus = computed(() => {
   if (!voiceMode.value) return null
-  if (listening.value && speaking.value) return '답변을 읽어드리는 중이에요. 말씀하시면 바로 끼어들 수 있어요.'
+  if (listening.value && speaking.value) return '답변을 읽어드리는 중이에요. 말씀하시면 바로 들을게요.'
   if (listening.value) return '듣고 있어요...'
   if (speaking.value) return '답변을 읽어드리고 있어요...'
   if (sending.value) return '답변을 준비하고 있어요...'
