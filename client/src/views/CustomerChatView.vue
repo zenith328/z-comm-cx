@@ -176,6 +176,8 @@ onMounted(() => {
     input.value = `주문번호 ${orderNo} 관련해서 문의드립니다. `
     messageInput.value?.focus()
   }
+
+  void scrollToBottom()
 })
 
 async function send() {
