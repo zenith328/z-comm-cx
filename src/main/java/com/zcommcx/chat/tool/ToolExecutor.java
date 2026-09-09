@@ -76,11 +76,23 @@ public class ToolExecutor {
         node.put("brand", product.getBrand());
         node.put("category", product.getCategory());
         node.put("price", product.getPrice());
+        // 결과가 최대 10건까지 나올 수 있어 매번 전체 설명을 다 보내면 토큰을 많이 쓰므로
+        // 적당히 잘라서 넘긴다 — 목록 단계 요약에는 충분하고, 고객이 특정 상품의 설명을
+        // 구체적으로 물으면 이 정도로도 답할 수 있다.
+        node.put("description", truncate(product.getDescription(), 300));
         int available = inventoryService.findByProductId(product.getId())
                 .map(inv -> inv.getQuantity() - inv.getReservedQuantity())
                 .orElse(0);
         node.put("availableQuantity", available);
         return node;
+    }
+
+    private String truncate(String text, int maxLength) {
+        if (text == null || text.isBlank()) {
+            return null;
+        }
+        String trimmed = text.trim();
+        return trimmed.length() > maxLength ? trimmed.substring(0, maxLength) + "..." : trimmed;
     }
 
     private ObjectNode getMyOrders(JsonNode args, String customerName, String customerPhone) {
