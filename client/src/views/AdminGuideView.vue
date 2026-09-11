@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { reactive } from 'vue'
+
 interface FlowStep {
   label: string
   to?: string
@@ -137,6 +139,15 @@ const sections: GuideSection[] = [
     ],
   },
 ]
+
+// 기본값은 전부 펼침. 배지를 key로 써서 섹션별 펼침 상태를 따로 관리한다.
+const expanded = reactive<Record<string, boolean>>(
+  Object.fromEntries(sections.map((section) => [section.badge, true])),
+)
+
+function toggleSection(badge: string) {
+  expanded[badge] = !expanded[badge]
+}
 </script>
 
 <template>
@@ -154,37 +165,47 @@ const sections: GuideSection[] = [
       <p><strong>회원 로그인</strong>(이름/전화번호) — 사이트 로그인 이후, 고객화면에서 리뷰 작성·주문·CS채팅 등 고객 기능을 쓸 때만 필요한 별도의 간단한 신원입니다.</p>
     </section>
 
+    <section class="login-note">
+      <p><strong>CX-Pay</strong> — 이 사이트의 유일한 결제수단입니다(실제 카드/계좌 결제는 없는 사전 충전형 가상 잔액). 고객화면에서는 헤더의 이름을 눌러 "내 정보"를 열면 잔액 확인과 충전이 가능하고, CS채팅에서 "만원 충전해줘"처럼 말해도 충전됩니다.</p>
+      <p>주문을 확정하면 그 자리에서 CX-Pay 잔액이 차감되고, 잔액이 부족하면 주문이 생성되지 않습니다(웹 주문화면·CS채팅 모두 동일). <strong>주문취소</strong>와 <strong>반품확정</strong>(주문관리 화면) 시에는 결제한 금액이 자동으로 환불됩니다 — 단, CX-Pay로 실제 결제된 적이 있는 주문만 환불되며, CX-Pay 도입 이전 주문처럼 결제 이력이 없는 주문은 환불되지 않습니다.</p>
+      <p>운영자는 회원관리 화면에서 회원별 CX-Pay 잔액을 확인할 수 있습니다.</p>
+    </section>
+
     <section v-for="section in sections" :key="section.badge" class="guide-section" :class="{ placeholder: section.placeholder }">
-      <div class="section-header">
+      <button type="button" class="section-header" @click="toggleSection(section.badge)">
+        <span class="toggle-icon" :class="{ collapsed: !expanded[section.badge] }">▾</span>
         <span class="badge">{{ section.badge }}</span>
         <h3>{{ section.title }}</h3>
         <span v-if="section.inProgress" class="status-tag">진행중</span>
-      </div>
-      <p class="summary">{{ section.summary }}</p>
+      </button>
 
-      <template v-if="!section.placeholder">
-        <div class="flow-columns">
-          <div class="flow-column">
-            <h4>고객화면</h4>
-            <ul>
-              <li v-for="step in section.customerFlow" :key="step.label">
-                <RouterLink v-if="step.to" :to="step.to" class="step-label">{{ step.label }}</RouterLink>
-                <span v-else class="step-label">{{ step.label }}</span>
-                <span class="step-desc">{{ step.desc }}</span>
-              </li>
-            </ul>
+      <template v-if="expanded[section.badge]">
+        <p class="summary">{{ section.summary }}</p>
+
+        <template v-if="!section.placeholder">
+          <div class="flow-columns">
+            <div class="flow-column">
+              <h4>고객화면</h4>
+              <ul>
+                <li v-for="step in section.customerFlow" :key="step.label">
+                  <RouterLink v-if="step.to" :to="step.to" class="step-label">{{ step.label }}</RouterLink>
+                  <span v-else class="step-label">{{ step.label }}</span>
+                  <span class="step-desc">{{ step.desc }}</span>
+                </li>
+              </ul>
+            </div>
+            <div class="flow-column">
+              <h4>운영자화면</h4>
+              <ul>
+                <li v-for="step in section.adminFlow" :key="step.label">
+                  <RouterLink v-if="step.to" :to="step.to" class="step-label">{{ step.label }}</RouterLink>
+                  <span v-else class="step-label">{{ step.label }}</span>
+                  <span class="step-desc">{{ step.desc }}</span>
+                </li>
+              </ul>
+            </div>
           </div>
-          <div class="flow-column">
-            <h4>운영자화면</h4>
-            <ul>
-              <li v-for="step in section.adminFlow" :key="step.label">
-                <RouterLink v-if="step.to" :to="step.to" class="step-label">{{ step.label }}</RouterLink>
-                <span v-else class="step-label">{{ step.label }}</span>
-                <span class="step-desc">{{ step.desc }}</span>
-              </li>
-            </ul>
-          </div>
-        </div>
+        </template>
       </template>
     </section>
   </div>
@@ -242,6 +263,22 @@ const sections: GuideSection[] = [
   align-items: center;
   gap: 10px;
   margin-bottom: 6px;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.toggle-icon {
+  display: inline-block;
+  color: #999;
+  font-size: 12px;
+  transition: transform 0.15s ease;
+}
+.toggle-icon.collapsed {
+  transform: rotate(-90deg);
 }
 .badge {
   padding: 2px 10px;
