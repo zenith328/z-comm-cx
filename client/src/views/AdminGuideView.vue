@@ -173,10 +173,10 @@ function toggleSection(badge: string) {
 
     <section v-for="section in sections" :key="section.badge" class="guide-section" :class="{ placeholder: section.placeholder }">
       <button type="button" class="section-header" @click="toggleSection(section.badge)">
-        <span class="toggle-icon" :class="{ collapsed: !expanded[section.badge] }">▾</span>
         <span class="badge">{{ section.badge }}</span>
         <h3>{{ section.title }}</h3>
         <span v-if="section.inProgress" class="status-tag">진행중</span>
+        <span class="toggle-icon" :class="{ collapsed: !expanded[section.badge] }">▾</span>
       </button>
 
       <template v-if="expanded[section.badge]">
@@ -273,8 +273,10 @@ function toggleSection(badge: string) {
 }
 .toggle-icon {
   display: inline-block;
+  margin-left: auto;
   color: #999;
-  font-size: 12px;
+  font-size: 22px;
+  line-height: 1;
   transition: transform 0.15s ease;
 }
 .toggle-icon.collapsed {
