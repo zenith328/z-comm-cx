@@ -67,10 +67,18 @@ public class MemberService {
         return member;
     }
 
-    /** CX-Pay 환불. 주문 취소 시 OrderService가 호출한다. */
+    /**
+     * CX-Pay 환불. 주문 취소 시 OrderService가 호출한다.
+     * CX-Pay 도입 이전에 생성된 주문처럼 애초에 CX-Pay로 결제(USE)된 적이 없는 주문을 취소하면,
+     * 실제로 차감한 적 없는 금액이 환불되어 잔액이 부풀려지는 문제가 있었다. 그래서 해당 주문번호로
+     * 결제(USE) 이력이 실제로 있을 때만 환불한다.
+     */
     @Transactional
     public Member refund(String name, String phone, long amount, String orderNo) {
         Member member = getOrCreate(name, phone);
+        if (!cxPayTransactionRepository.existsByTypeAndReason(CxPayTransactionType.USE, orderNo)) {
+            return member;
+        }
         member.refund(amount);
         recordTransaction(member, CxPayTransactionType.REFUND, amount, orderNo);
         return member;

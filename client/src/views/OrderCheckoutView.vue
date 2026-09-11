@@ -9,7 +9,7 @@ import {
   saveShippingHistory,
   type ShippingHistoryEntry,
 } from '../utils/orderHistory'
-import { session } from '../stores/session'
+import { refreshSession, session } from '../stores/session'
 import { extractErrorMessage } from '../utils/apiError'
 
 const route = useRoute()
@@ -84,6 +84,8 @@ async function load() {
   if (session.current) {
     form.customerName = session.current.name
     form.customerPhone = session.current.phone
+    // CS채팅으로 이미 충전/주문/취소를 했을 수 있어 CX-Pay 잔액을 최신값으로 다시 받아온다.
+    refreshSession()
   }
 
   if (!productId.value) {

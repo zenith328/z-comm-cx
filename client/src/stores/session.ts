@@ -85,6 +85,25 @@ export async function updateProfile(
   })
 }
 
+/**
+ * 서버에 있는 최신 회원 정보(특히 CX-Pay 잔액)로 세션을 다시 채운다. CS채팅에서 주문/취소/충전을
+ * 하면 백엔드 데이터는 바뀌지만 이 세션 캐시는 그대로라, "내 정보"를 열 때마다 이걸로 갱신해준다.
+ */
+export async function refreshSession() {
+  if (!session.current) return
+  const result = await loginMember(session.current.name, session.current.phone)
+  persist({
+    name: result.member.name,
+    phone: result.member.phone,
+    gender: result.member.gender,
+    birthYear: result.member.birthYear,
+    age: result.member.age,
+    heightCm: result.member.heightCm,
+    weightKg: result.member.weightKg,
+    balance: result.member.balance,
+  })
+}
+
 /** CX-Pay 충전. "내 정보" 화면과 CS채팅 둘 다 결국 이 API를 거친다(채팅은 백엔드 tool을 통해서). */
 export async function chargeBalance(amount: number) {
   if (!session.current) return

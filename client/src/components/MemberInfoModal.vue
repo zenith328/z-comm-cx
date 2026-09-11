@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import MemberProfileForm from './MemberProfileForm.vue'
 import CxPayChargeModal from './CxPayChargeModal.vue'
-import { session, updateProfile } from '../stores/session'
+import { refreshSession, session, updateProfile } from '../stores/session'
 import type { Gender } from '../api/cs-types'
 
 const emit = defineEmits<{ close: [] }>()
@@ -11,6 +11,12 @@ const saving = ref(false)
 const error = ref('')
 
 const chargeModalOpen = ref(false)
+
+// CS채팅으로 주문/취소/충전을 하면 잔액 같은 값이 서버에서 바뀌는데, 세션 캐시는 그대로라
+// 화면을 열 때마다 최신값으로 다시 받아온다.
+onMounted(() => {
+  refreshSession()
+})
 
 function genderLabel(gender: Gender | null | undefined): string {
   if (gender === 'MALE') return '남성'
