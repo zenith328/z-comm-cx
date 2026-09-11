@@ -1,6 +1,17 @@
 import { ref } from 'vue'
 import type { AxiosInstance, InternalAxiosRequestConfig } from 'axios'
 
+// http.post(url, data, { skipColdStartIndicator: true }) 처럼 호출부에서 객체 리터럴로
+// 바로 넘기면, axios의 AxiosRequestConfig에 없는 필드라 TS가 "known하지 않은 속성"으로
+// 막는다(excess property check). 모듈 보강으로 axios 자체 타입에 필드를 추가해 해결한다.
+// vue-tsc --noEmit(비-build 모드)에서는 안 잡히고 프로덕션 빌드가 쓰는 `vue-tsc -b`
+// (project reference build 모드)에서만 걸러졌던 사례 — 로컬 확인 시 주의.
+declare module 'axios' {
+  interface AxiosRequestConfig {
+    skipColdStartIndicator?: boolean
+  }
+}
+
 /**
  * Render 무료 플랜은 15분간 요청이 없으면 서버가 슬립 모드로 들어간다. 슬립 상태에서 온
  * 요청은 콜드스타트(최대 1분 가량)로 응답이 늦어지는데, 화면에 아무 표시가 없으면 "멈춘
@@ -16,11 +27,6 @@ const WAKE_UP_THRESHOLD_MS = 10000
 interface ColdStartConfig extends InternalAxiosRequestConfig {
   _coldStartTimer?: ReturnType<typeof setTimeout>
   _coldStartTriggered?: boolean
-  /**
-   * 이 요청은 원래도 오래 걸릴 수 있는(예: Gemini Function Calling 왕복) 요청이라
-   * 콜드스타트 배너 트리거 대상에서 제외한다. 요청 config에 `{ skipColdStartIndicator: true }`를 넘기면 된다.
-   */
-  skipColdStartIndicator?: boolean
 }
 
 let slowRequestCount = 0
