@@ -20,3 +20,8 @@ export function shipOrder(id: number) {
 export function deliverOrder(id: number) {
   return http.post<OrderResponse>(`/orders/${id}/deliver`).then((res) => res.data)
 }
+
+/** 반품접수 상태의 주문을 최종 확정한다(반품완료 처리 + CX-Pay 환불). */
+export function completeReturn(id: number) {
+  return http.post<OrderResponse>(`/orders/${id}/complete-return`).then((res) => res.data)
+}

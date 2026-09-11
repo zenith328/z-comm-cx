@@ -110,6 +110,22 @@ public class OrderService {
         return order;
     }
 
+    /**
+     * 관리자가 반품접수 상태의 주문을 최종 확정한다(실물 반품 확인 후). 이 시점에 CX-Pay로
+     * 환불한다 — 반품접수 시점이 아니라 확정 시점에 환불하는 이유는, 접수만 하고 아직 실제
+     * 반품 처리가 끝나기 전인데 미리 돈부터 돌려주면 안 되기 때문이다.
+     */
+    @Transactional
+    public Order completeReturn(Long id) {
+        Order order = getOrder(id);
+        if (order.getStatus() != OrderStatus.RETURN_REQUESTED) {
+            throw new IllegalStateException("반품접수 상태의 주문만 반품 확정할 수 있습니다. (현재 상태=%s)".formatted(order.getStatus()));
+        }
+        memberService.refund(order.getCustomerName(), order.getCustomerPhone(), order.totalAmount(), order.getOrderNo());
+        order.completeReturn();
+        return order;
+    }
+
     @Transactional
     public Order markShipped(Long id) {
         Order order = getOrder(id);

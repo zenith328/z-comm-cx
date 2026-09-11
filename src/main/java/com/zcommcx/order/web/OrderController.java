@@ -66,6 +66,12 @@ public class OrderController {
         return OrderResponse.from(orderService.requestReturn(id, request.reason()));
     }
 
+    /** 관리자가 반품접수 상태의 주문을 최종 확정한다(반품완료 처리 + CX-Pay 환불). */
+    @PostMapping("/{id}/complete-return")
+    public OrderResponse completeReturn(@PathVariable Long id) {
+        return OrderResponse.from(orderService.completeReturn(id));
+    }
+
     @PostMapping("/{id}/ship")
     public OrderResponse ship(@PathVariable Long id) {
         return OrderResponse.from(orderService.markShipped(id));

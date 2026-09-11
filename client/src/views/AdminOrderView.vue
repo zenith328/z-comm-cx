@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import '../styles/admin.css'
-import { deliverOrder, listOrders, shipOrder } from '../api/orders'
+import { completeReturn, deliverOrder, listOrders, shipOrder } from '../api/orders'
 import type { OrderResponse, OrderStatus } from '../api/cs-types'
 import { maskName, maskPhone } from '../utils/mask'
 import { formatDateTime } from '../utils/format'
@@ -12,13 +12,14 @@ const errorMessage = ref('')
 const actionError = ref('')
 const actingId = ref<number | null>(null)
 
-// PREPARING/RETURNED는 현재 이 프로그램에서 실제로 전환되는 코드 경로가 없어 필터 옵션에서 제외했다.
+// PREPARING은 현재 이 프로그램에서 실제로 전환되는 코드 경로가 없어 필터 옵션에서 제외했다.
 const STATUS_FILTER_OPTIONS: { value: OrderStatus; label: string }[] = [
   { value: 'PAID', label: '결제완료' },
   { value: 'SHIPPING', label: '배송중' },
   { value: 'DELIVERED', label: '배송완료' },
   { value: 'CANCELLED', label: '취소됨' },
   { value: 'RETURN_REQUESTED', label: '반품접수' },
+  { value: 'RETURNED', label: '반품완료' },
 ]
 
 const statusFilter = ref<OrderStatus[]>([])
@@ -84,6 +85,18 @@ async function handleDeliver(order: OrderResponse) {
     replaceOrder(await deliverOrder(order.id))
   } catch {
     actionError.value = `주문 ${order.orderNo} 배송완료 처리에 실패했습니다.`
+  } finally {
+    actingId.value = null
+  }
+}
+
+async function handleCompleteReturn(order: OrderResponse) {
+  actingId.value = order.id
+  actionError.value = ''
+  try {
+    replaceOrder(await completeReturn(order.id))
+  } catch {
+    actionError.value = `주문 ${order.orderNo} 반품확정 처리에 실패했습니다.`
   } finally {
     actingId.value = null
   }
@@ -222,6 +235,14 @@ onMounted(load)
                   @click="handleDeliver(order)"
                 >
                   배송완료
+                </button>
+                <button
+                  v-else-if="order.status === 'RETURN_REQUESTED'"
+                  type="button"
+                  :disabled="actingId === order.id"
+                  @click="handleCompleteReturn(order)"
+                >
+                  반품확정
                 </button>
               </div>
             </td>

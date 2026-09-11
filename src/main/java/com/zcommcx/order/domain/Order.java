@@ -106,6 +106,12 @@ public class Order {
         this.updatedAt = LocalDateTime.now();
     }
 
+    /** 반품접수(RETURN_REQUESTED) 상태의 주문을 관리자가 최종 확정해서 반품완료 처리한다. */
+    public void completeReturn() {
+        this.status = OrderStatus.RETURNED;
+        this.updatedAt = LocalDateTime.now();
+    }
+
     public void changeShippingAddress(String recipientName, String recipientPhone, String zipcode, String address1, String address2) {
         this.recipientName = recipientName;
         this.recipientPhone = recipientPhone;
