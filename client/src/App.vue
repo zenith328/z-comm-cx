@@ -204,7 +204,7 @@ function handleLoginLayerCancel() {
     </div>
 
     <div v-if="myInfoOpen" class="modal-overlay" @click.self="myInfoOpen = false">
-      <div class="login-modal">
+      <div class="login-modal member-info-modal">
         <MemberInfoModal @close="myInfoOpen = false" />
       </div>
     </div>
@@ -395,6 +395,10 @@ h1 {
   background: #fff;
   border-radius: 10px;
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+}
+/* CX-Pay 잔액이 백만원대를 넘어가면 기본 320px 폭에서 금액이 줄바꿈되어 보여서 조금 더 넓힘 */
+.member-info-modal {
+  width: 360px;
 }
 .login-modal h3 {
   margin: 0 0 4px;

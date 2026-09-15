@@ -44,7 +44,7 @@ function handleSubmit() {
 <template>
   <form class="member-profile-form" @submit.prevent="handleSubmit">
     <label>
-      성별 <span class="optional">(선택)</span>
+      <span class="field-label">성별 <span class="optional">(선택)</span></span>
       <select v-model="gender">
         <option value="">선택 안함</option>
         <option value="MALE">남성</option>
@@ -52,15 +52,15 @@ function handleSubmit() {
       </select>
     </label>
     <label>
-      출생년도 <span class="optional">(선택)</span>
+      <span class="field-label">출생년도 <span class="optional">(선택)</span></span>
       <input v-model="birthYear" type="number" min="1900" :max="currentYear" placeholder="예: 1998" />
     </label>
     <label>
-      키(cm) <span class="optional">(선택, "내 체형 맞춤 핏 요약"에 사용)</span>
+      <span class="field-label">키(cm) <span class="optional">(선택, "내 체형 맞춤 핏 요약"에 사용)</span></span>
       <input v-model="heightCm" type="number" min="50" max="250" placeholder="예: 165" />
     </label>
     <label>
-      몸무게(kg) <span class="optional">(선택)</span>
+      <span class="field-label">몸무게(kg) <span class="optional">(선택, "내 체형 맞춤 핏 요약"에 사용)</span></span>
       <input v-model="weightKg" type="number" min="20" max="300" placeholder="예: 58" />
     </label>
     <slot></slot>

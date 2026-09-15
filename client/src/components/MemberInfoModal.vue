@@ -131,12 +131,14 @@ async function handleSubmit(payload: {
 }
 .cx-pay .label {
   color: #888;
+  white-space: nowrap;
 }
 .cx-pay .balance {
   flex: 1;
   font-size: 16px;
   font-weight: 700;
   color: #0056b3;
+  white-space: nowrap;
 }
 .charge-btn {
   padding: 6px 12px;
