@@ -25,6 +25,12 @@ const crumbs = computed<Crumb[]>(() => {
         { label: breadcrumbState.productName ?? '상품상세', to: `/products/${route.params.id}` },
         { label: '리뷰 작성' },
       ]
+    case 'showhost':
+      return [
+        { label: '상품목록', to: '/products' },
+        { label: breadcrumbState.productName ?? '상품상세', to: `/products/${route.params.id}` },
+        { label: 'AI 쇼호스트 방송' },
+      ]
     case 'order-new':
       return [
         { label: '주문목록', to: '/orders' },

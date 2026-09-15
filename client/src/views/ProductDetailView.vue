@@ -117,6 +117,9 @@ onUnmounted(() => setBreadcrumbProductName(null))
               </label>
               <button type="button" :disabled="outOfStock || quantity < 1" @click="goOrder">주문하기</button>
             </div>
+            <RouterLink :to="`/products/${productId}/showhost`" class="showhost-link">
+              🎤 AI 쇼호스트 방송 보기
+            </RouterLink>
           </div>
         </div>
       </section>
@@ -238,6 +241,19 @@ onUnmounted(() => setBreadcrumbProductName(null))
 .order-box button:disabled {
   background: #a7c4e0;
   cursor: not-allowed;
+}
+.showhost-link {
+  padding: 8px 16px;
+  border: 1px solid #0056b3;
+  border-radius: 6px;
+  color: #0056b3;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.showhost-link:hover {
+  background: #f0f7ff;
 }
 .product-description {
   margin-bottom: 24px;

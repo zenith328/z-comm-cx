@@ -25,6 +25,12 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      path: '/products/:id/showhost',
+      name: 'showhost',
+      component: () => import('../views/ShowhostView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
       path: '/orders/new',
       name: 'order-new',
       component: () => import('../views/OrderCheckoutView.vue'),
@@ -59,6 +65,11 @@ const router = createRouter({
     { path: '/admin/orders', name: 'admin-orders', component: () => import('../views/AdminOrderView.vue') },
     { path: '/admin/tickets', name: 'admin-tickets', component: () => import('../views/AdminCsTicketView.vue') },
     { path: '/admin/members', name: 'admin-members', component: () => import('../views/AdminMemberView.vue') },
+    {
+      path: '/admin/avatar-showhost',
+      name: 'admin-avatar-showhost',
+      component: () => import('../views/AdminAvatarShowhostView.vue'),
+    },
     { path: '/admin/system', name: 'admin-system', component: () => import('../views/AdminSystemView.vue') },
   ],
 })
