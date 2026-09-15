@@ -60,8 +60,10 @@ async function handleRegister(url: string) {
         상품코드
         <input v-model="productCodeInput" type="text" placeholder="상품코드로 검색" class="product-code-input" />
       </label>
-      <RouterLink to="/admin/segment-keywords" class="segment-keyword-link">성향키워드 관리</RouterLink>
-      <RouterLink to="/admin/avatar-showhost" class="segment-keyword-link">쇼호스트 아바타 관리</RouterLink>
+      <div class="filter-bar-actions">
+        <RouterLink to="/admin/segment-keywords" class="segment-keyword-link">성향키워드 관리</RouterLink>
+        <RouterLink to="/admin/avatar-showhost" class="segment-keyword-link">쇼호스트 아바타 관리</RouterLink>
+      </div>
     </div>
     <ProductTable :products="products" @restock="restock" @out-of-stock="markOutOfStock" />
 
@@ -89,8 +91,13 @@ async function handleRegister(url: string) {
   gap: 16px;
   margin-bottom: 12px;
 }
-.segment-keyword-link {
+.filter-bar-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   margin-left: auto;
+}
+.segment-keyword-link {
   flex-shrink: 0;
   padding: 8px 14px;
   border: 1px solid #0056b3;
