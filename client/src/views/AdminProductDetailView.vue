@@ -38,7 +38,12 @@ const activeTab = ref<DetailTab>('description')
 
 <template>
   <div>
-    <RouterLink to="/admin/products" class="back-link">← 상품관리로 돌아가기</RouterLink>
+    <div class="top-bar">
+      <RouterLink to="/admin/products" class="back-link">← 상품관리로 돌아가기</RouterLink>
+      <RouterLink :to="`/products/${productId}/showhost`" class="showhost-preview-link">
+        🎤 쇼호스트 방송 보기
+      </RouterLink>
+    </div>
 
     <p v-if="loading" class="loading">불러오는 중...</p>
     <p v-if="loadError" class="error">{{ loadError }}</p>
@@ -96,15 +101,34 @@ const activeTab = ref<DetailTab>('description')
 </template>
 
 <style scoped>
-.back-link {
-  display: inline-block;
+.top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
   margin-bottom: 16px;
+}
+.back-link {
   font-size: 13px;
   color: #0056b3;
   text-decoration: none;
+  white-space: nowrap;
 }
 .back-link:hover {
   text-decoration: underline;
+}
+.showhost-preview-link {
+  padding: 8px 16px;
+  border: 1px solid #0056b3;
+  border-radius: 6px;
+  color: #0056b3;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.showhost-preview-link:hover {
+  background: #f0f7ff;
 }
 .loading,
 .error {
