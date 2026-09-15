@@ -113,7 +113,6 @@ const sections: GuideSection[] = [
   {
     badge: '⑤ cs-chat-voice-input',
     title: '음성 기반 CS 채팅',
-    inProgress: true,
     summary:
       '기존 CS채팅에 음성 입력(STT)·음성 응답(TTS)을 더해, 마이크만으로 상담을 이어갈 수 있는 대화 모드를 추가했습니다. 되돌리기 어려운 처리는 실행 전 한 번 더 확인하며, 상품 조회도 채팅으로 가능합니다.',
     customerFlow: [
