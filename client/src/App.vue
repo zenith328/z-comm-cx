@@ -179,7 +179,6 @@ function handleLoginLayerCancel() {
           <RouterLink to="/admin/orders" active-class="active">주문관리</RouterLink>
           <RouterLink to="/admin/tickets" active-class="active">CS목록</RouterLink>
           <RouterLink to="/admin/members" active-class="active">회원관리</RouterLink>
-          <RouterLink to="/admin/avatar-showhost" active-class="active">쇼호스트 아바타</RouterLink>
           <RouterLink to="/admin/system" active-class="active">시스템관리</RouterLink>
           <button type="button" class="guardrail-tab-button" @click="openGuardrailLayer">AI 자동이관 기준</button>
         </template>

@@ -61,6 +61,7 @@ async function handleRegister(url: string) {
         <input v-model="productCodeInput" type="text" placeholder="상품코드로 검색" class="product-code-input" />
       </label>
       <RouterLink to="/admin/segment-keywords" class="segment-keyword-link">성향키워드 관리</RouterLink>
+      <RouterLink to="/admin/avatar-showhost" class="segment-keyword-link">쇼호스트 아바타 관리</RouterLink>
     </div>
     <ProductTable :products="products" @restock="restock" @out-of-stock="markOutOfStock" />
 
