@@ -4,6 +4,7 @@ import { useRoute } from 'vue-router'
 import { fetchProduct } from '../api/products'
 import ProductDescriptionVariantPanel from '../components/ProductDescriptionVariantPanel.vue'
 import SyntheticReviewSeedPanel from '../components/SyntheticReviewSeedPanel.vue'
+import ShowhostBroadcastPanel from '../components/ShowhostBroadcastPanel.vue'
 import type { Product } from '../types/product'
 
 const route = useRoute()
@@ -32,18 +33,13 @@ async function load() {
 
 onMounted(load)
 
-type DetailTab = 'description' | 'fitGuideSeed'
+type DetailTab = 'description' | 'fitGuideSeed' | 'showhost'
 const activeTab = ref<DetailTab>('description')
 </script>
 
 <template>
   <div>
-    <div class="top-bar">
-      <RouterLink to="/admin/products" class="back-link">← 상품관리로 돌아가기</RouterLink>
-      <RouterLink :to="`/products/${productId}/showhost`" class="showhost-preview-link">
-        🎤 쇼호스트 방송 보기
-      </RouterLink>
-    </div>
+    <RouterLink to="/admin/products" class="back-link">← 상품관리로 돌아가기</RouterLink>
 
     <p v-if="loading" class="loading">불러오는 중...</p>
     <p v-if="loadError" class="error">{{ loadError }}</p>
@@ -81,6 +77,14 @@ const activeTab = ref<DetailTab>('description')
         >
           AI 핏 가이드용 테스트 리뷰 생성
         </button>
+        <button
+          type="button"
+          class="product-detail-tab"
+          :class="{ active: activeTab === 'showhost' }"
+          @click="activeTab = 'showhost'"
+        >
+          쇼호스트 방송
+        </button>
       </div>
 
       <section v-show="activeTab === 'description'" class="tab-panel">
@@ -96,39 +100,24 @@ const activeTab = ref<DetailTab>('description')
           :description="product.description"
         />
       </section>
+
+      <section v-show="activeTab === 'showhost'" class="tab-panel">
+        <ShowhostBroadcastPanel :product-code="product.productCode" allow-regenerate />
+      </section>
     </template>
   </div>
 </template>
 
 <style scoped>
-.top-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 16px;
-}
 .back-link {
+  display: inline-block;
+  margin-bottom: 16px;
   font-size: 13px;
   color: #0056b3;
   text-decoration: none;
-  white-space: nowrap;
 }
 .back-link:hover {
   text-decoration: underline;
-}
-.showhost-preview-link {
-  padding: 8px 16px;
-  border: 1px solid #0056b3;
-  border-radius: 6px;
-  color: #0056b3;
-  font-size: 13px;
-  font-weight: 600;
-  text-decoration: none;
-  white-space: nowrap;
-}
-.showhost-preview-link:hover {
-  background: #f0f7ff;
 }
 .loading,
 .error {
