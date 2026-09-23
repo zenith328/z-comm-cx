@@ -49,6 +49,9 @@ public class ShowhostService {
                 .orElseGet(() -> repository.save(new ShowhostScript(productCode, script)));
     }
 
+    // 답변 근거인 리뷰 요약이 캐시 미스면 ReviewService가 요약 캐시와 Gemini 사용량을 INSERT하는데,
+    // 이 트랜잭션에 합류하므로 클래스 레벨 readOnly=true를 여기서도 덮어써야 한다.
+    @Transactional
     public String answerQuestion(String productCode, String question) {
         Product product = productService.getByProductCode(productCode);
         String reviewSummary = reviewSummary(productCode);
