@@ -8,6 +8,7 @@ import type {
   ReviewSortOption,
   ReviewSummaryResponse,
 } from '../types/review'
+import type { Gender } from './cs-types'
 import type { PageResponse } from '../types/page'
 import { attachSiteAuthInterceptor } from '../stores/siteAuth'
 import { attachColdStartIndicator } from '../stores/coldStart'
@@ -34,9 +35,14 @@ export function fetchVisibleReviews(
     .then((res) => res.data)
 }
 
-export function summarizeReviews(productCode: string, query: string): Promise<ReviewSummaryResponse> {
+// viewerGender를 주면 그 성별 고객 기준으로 걸러낸 요약을 받는다(비로그인/미입력이면 null → 일반 요약).
+export function summarizeReviews(
+  productCode: string,
+  query: string,
+  viewerGender: Gender | null,
+): Promise<ReviewSummaryResponse> {
   return client
-    .post<ReviewSummaryResponse>(`/products/${productCode}/reviews/summary`, { query })
+    .post<ReviewSummaryResponse>(`/products/${productCode}/reviews/summary`, { query, viewerGender })
     .then((res) => res.data)
 }
 

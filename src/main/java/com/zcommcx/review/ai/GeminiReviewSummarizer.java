@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.zcommcx.config.GeminiProperties;
+import com.zcommcx.member.domain.Gender;
 import com.zcommcx.review.domain.Review;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,7 +24,7 @@ public class GeminiReviewSummarizer implements ReviewSummarizer {
     private final GeminiProperties properties;
 
     @Override
-    public ReviewSummaryResult summarize(List<Review> reviews, String query) {
+    public ReviewSummaryResult summarize(List<Review> reviews, String query, Gender viewerGender) {
         if (reviews.isEmpty()) {
             return new ReviewSummaryResult(NO_REVIEW_SUMMARY, 0);
         }
@@ -32,7 +33,7 @@ public class GeminiReviewSummarizer implements ReviewSummarizer {
                 ? reviews.subList(0, properties.maxReviewsPerSummary())
                 : reviews;
 
-        String prompt = ReviewPrompts.summaryPrompt(targetReviews, query);
+        String prompt = ReviewPrompts.summaryPrompt(targetReviews, query, viewerGender);
 
         JsonNode resultNode;
         try {

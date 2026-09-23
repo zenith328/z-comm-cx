@@ -200,6 +200,17 @@ Vue Router가 history 모드라 `/products/1`처럼 실제 정적 파일이 없�
   (위 "Google 로그인 설정" 참고).
 - **로그인 허용 이메일**: 로컬처럼 `psql` 대신 Supabase 대시보드의 **SQL Editor**에서
   `allowed_google_account`에 INSERT (문법은 위 "Google 로그인 설정" 섹션과 동일).
+- **AI 리뷰 요약 성별 개인화 도입 시 1회**: `review_summary_cache`의 캐시 키가
+  `(product_code, query)` → `(product_code, query, audience)`로 바뀌었다. `ddl-auto: update`는
+  새 컬럼/제약만 추가하고 **예전 unique 제약은 지우지 않으므로**, 그대로 두면 성별별 캐시
+  저장이 매번 실패해(에러 없이 조용히 무시됨) 같은 질문에도 AI를 계속 호출한다. 새 버전 배포
+  직후 SQL Editor에서 아래를 실행한다 (예전 요약은 새 프롬프트로 다시 만들어지도록 함께 비운다).
+  ```sql
+  -- 제약 이름은 Hibernate가 테이블+컬럼으로 만든 해시라 로컬과 같아야 하지만, 먼저 확인:
+  -- SELECT conname FROM pg_constraint WHERE conrelid = 'review_summary_cache'::regclass AND contype = 'u';
+  ALTER TABLE review_summary_cache DROP CONSTRAINT IF EXISTS uks1or051w87ylgvv4sv9cla5l4;
+  DELETE FROM review_summary_cache;
+  ```
 
 ### 배포하면서 겪은 함정
 
