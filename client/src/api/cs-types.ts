@@ -165,5 +165,6 @@ export interface OrderCreateRequest {
   zipcode: string
   address1: string
   address2: string
-  items: { productId: number; quantity: number }[]
+  // showhostOfferId: 쇼호스트 방송 특가로 주문할 때만. 할인가는 서버가 계산한다.
+  items: { productId: number; quantity: number; showhostOfferId?: number }[]
 }

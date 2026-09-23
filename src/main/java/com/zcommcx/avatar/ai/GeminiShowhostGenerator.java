@@ -3,6 +3,7 @@ package com.zcommcx.avatar.ai;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.zcommcx.avatar.domain.ShowhostDiscount;
 import com.zcommcx.product.domain.Product;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,8 +21,8 @@ public class GeminiShowhostGenerator {
         return generate(ShowhostPrompts.scriptPrompt(product, reviewSummary), "script");
     }
 
-    public String answerQuestion(Product product, String reviewSummary, String question) {
-        return generate(ShowhostPrompts.qnaPrompt(product, reviewSummary, question), "answer");
+    public String answerQuestion(Product product, String reviewSummary, ShowhostDiscount discount, String question) {
+        return generate(ShowhostPrompts.qnaPrompt(product, reviewSummary, discount, question), "answer");
     }
 
     private String generate(String prompt, String field) {

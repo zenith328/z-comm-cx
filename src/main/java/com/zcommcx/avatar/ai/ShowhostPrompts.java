@@ -1,5 +1,6 @@
 package com.zcommcx.avatar.ai;
 
+import com.zcommcx.avatar.domain.ShowhostDiscount;
 import com.zcommcx.product.domain.Product;
 
 final class ShowhostPrompts {
@@ -25,7 +26,10 @@ final class ShowhostPrompts {
                 """.formatted(productContext(product, reviewSummary));
     }
 
-    static String qnaPrompt(Product product, String reviewSummary, String question) {
+    // 방송 특가는 대본(scriptPrompt)에는 넣지 않는다 — 대본은 상품당 1건 캐시라 설정이 바뀌어도 다시
+    // 만들어지지 않고, AI가 할인율을 틀리게 말할 수도 있어서 특가 안내 멘트는 프론트가 고정 문구로 붙인다.
+    // Q&A는 매번 새로 답하므로 현재 설정을 그대로 넘겨 "할인 없나요?"에 정확히 답하게 한다.
+    static String qnaPrompt(Product product, String reviewSummary, ShowhostDiscount discount, String question) {
         return """
                 당신은 라이브 커머스 방송 중인 AI 쇼호스트입니다. 시청자가 채팅으로 질문을 남기면
                 아래 상품 정보/리뷰 요약만 근거로 답하세요. 근거가 없는 내용은 추측해서 답하지 말고
@@ -33,10 +37,24 @@ final class ShowhostPrompts {
                 답변은 방송에서 소리 내어 읽을 것이므로 1~3문장의 짧고 자연스러운 구어체로 답하세요.
 
                 %s
+                [방송 특가]
+                %s
 
                 [시청자 질문]
                 %s
-                """.formatted(productContext(product, reviewSummary), question);
+                """.formatted(productContext(product, reviewSummary), discountContext(product, discount), question);
+    }
+
+    private static String discountContext(Product product, ShowhostDiscount discount) {
+        if (!discount.isEnabled() || product.getPrice() == null) {
+            return "현재 진행 중인 할인은 없습니다. 할인을 물으면 지금은 진행 중인 할인이 없다고 솔직하게 답하세요.";
+        }
+        long discounted = ShowhostDiscount.discountedPrice(product.getPrice(), discount.getDiscountRate());
+        return """
+                이 방송을 보고 있는 고객에게만 %d%% 할인(%d원 → %d원)을 드립니다.
+                방송에 들어온 시점부터 %d분 안에, 화면의 "방송 특가로 구매" 버튼으로 주문해야 적용됩니다.
+                한 고객당 상품별로 하루 1번, 주문 1건에만 쓸 수 있습니다."""
+                .formatted(discount.getDiscountRate(), product.getPrice(), discounted, discount.getValidMinutes());
     }
 
     private static String productContext(Product product, String reviewSummary) {

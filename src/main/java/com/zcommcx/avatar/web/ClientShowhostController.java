@@ -2,17 +2,22 @@ package com.zcommcx.avatar.web;
 
 import com.zcommcx.avatar.domain.ShowhostScript;
 import com.zcommcx.avatar.service.AvatarSettingService;
+import com.zcommcx.avatar.service.ShowhostDiscountService;
 import com.zcommcx.avatar.service.ShowhostService;
+import com.zcommcx.avatar.web.dto.ShowhostOfferRequest;
+import com.zcommcx.avatar.web.dto.ShowhostOfferResponse;
 import com.zcommcx.avatar.web.dto.ShowhostQnaRequest;
 import com.zcommcx.avatar.web.dto.ShowhostQnaResponse;
 import com.zcommcx.avatar.web.dto.ShowhostResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -26,6 +31,7 @@ public class ClientShowhostController {
 
     private final ShowhostService showhostService;
     private final AvatarSettingService avatarSettingService;
+    private final ShowhostDiscountService discountService;
 
     @GetMapping
     public ShowhostResponse get(@PathVariable String productCode) {
@@ -42,5 +48,26 @@ public class ClientShowhostController {
     @PostMapping("/qna")
     public ShowhostQnaResponse ask(@PathVariable String productCode, @Valid @RequestBody ShowhostQnaRequest request) {
         return new ShowhostQnaResponse(showhostService.answerQuestion(productCode, request.question()));
+    }
+
+    /**
+     * 고객이 방송에 들어오면 호출해서 방송 특가를 발급(오늘 이미 받았으면 그대로 반환)받는다.
+     * 특가가 꺼져 있고 오늘 받은 것도 없으면 204.
+     */
+    @PostMapping("/offer")
+    public ResponseEntity<ShowhostOfferResponse> issueOffer(
+            @PathVariable String productCode, @Valid @RequestBody ShowhostOfferRequest request) {
+        return discountService.issueOrGetToday(productCode, request.customerName(), request.customerPhone())
+                .map(offer -> ResponseEntity.ok(ShowhostOfferResponse.from(offer)))
+                .orElseGet(() -> ResponseEntity.noContent().build());
+    }
+
+    /** 주문 화면에서 오늘 받은 방송 특가를 조회한다(발급하지 않음). 없으면 204. */
+    @GetMapping("/offer")
+    public ResponseEntity<ShowhostOfferResponse> getOffer(
+            @PathVariable String productCode, @RequestParam String customerName, @RequestParam String customerPhone) {
+        return discountService.findToday(productCode, customerName, customerPhone)
+                .map(offer -> ResponseEntity.ok(ShowhostOfferResponse.from(offer)))
+                .orElseGet(() -> ResponseEntity.noContent().build());
     }
 }

@@ -5,6 +5,7 @@ import { fetchProduct } from '../api/products'
 import ProductDescriptionVariantPanel from '../components/ProductDescriptionVariantPanel.vue'
 import SyntheticReviewSeedPanel from '../components/SyntheticReviewSeedPanel.vue'
 import ShowhostBroadcastPanel from '../components/ShowhostBroadcastPanel.vue'
+import ShowhostDiscountSettingForm from '../components/ShowhostDiscountSettingForm.vue'
 import type { Product } from '../types/product'
 
 const route = useRoute()
@@ -13,6 +14,8 @@ const productId = Number(route.params.id)
 const product = ref<Product | null>(null)
 const loading = ref(false)
 const loadError = ref('')
+// 방송 특가 설정을 저장하면 아래 방송 미리보기를 다시 그려 안내 멘트를 최신 설정으로 보여준다.
+const showhostPanelKey = ref(0)
 
 function formatPrice(price: number | null): string {
   return price == null ? '-' : `${price.toLocaleString()}원`
@@ -102,7 +105,12 @@ const activeTab = ref<DetailTab>('description')
       </section>
 
       <section v-show="activeTab === 'showhost'" class="tab-panel">
-        <ShowhostBroadcastPanel :product-code="product.productCode" allow-regenerate />
+        <ShowhostDiscountSettingForm
+          :product-code="product.productCode"
+          :price="product.price"
+          @saved="showhostPanelKey++"
+        />
+        <ShowhostBroadcastPanel :key="showhostPanelKey" :product-code="product.productCode" allow-regenerate />
       </section>
     </template>
   </div>

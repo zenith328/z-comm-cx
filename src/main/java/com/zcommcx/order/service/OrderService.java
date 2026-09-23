@@ -1,5 +1,6 @@
 package com.zcommcx.order.service;
 
+import com.zcommcx.avatar.service.ShowhostDiscountService;
 import com.zcommcx.common.exception.NotFoundException;
 import com.zcommcx.inventory.service.InventoryService;
 import com.zcommcx.member.service.MemberService;
@@ -28,6 +29,7 @@ public class OrderService {
     private final ProductService productService;
     private final InventoryService inventoryService;
     private final MemberService memberService;
+    private final ShowhostDiscountService showhostDiscountService;
 
     @Transactional
     public Order createOrder(OrderCreateRequest request) {
@@ -44,7 +46,14 @@ public class OrderService {
         for (OrderItemRequest itemRequest : request.items()) {
             Product product = productService.getProduct(itemRequest.productId());
             inventoryService.reserve(product.getId(), itemRequest.quantity());
-            order.addItem(new OrderItem(product, product.getName(), product.getPrice(), itemRequest.quantity()));
+            // 방송 특가 주문이면 특가를 사용 처리하고 할인가를 단가로 저장한다 — 단가가 주문 시점 값으로
+            // 고정되므로 취소/반품 시 CX-Pay 환불도 할인가 기준으로 맞게 계산된다.
+            Long unitPrice = itemRequest.showhostOfferId() == null
+                    ? product.getPrice()
+                    : showhostDiscountService.redeem(
+                            itemRequest.showhostOfferId(), product,
+                            request.customerName(), request.customerPhone(), order.getOrderNo());
+            order.addItem(new OrderItem(product, product.getName(), unitPrice, itemRequest.quantity()));
         }
 
         // CX-Pay(유일한 결제수단)에서 결제금액을 차감한다. 잔액이 부족하면 여기서 예외가 나서

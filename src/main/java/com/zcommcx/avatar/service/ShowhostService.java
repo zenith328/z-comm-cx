@@ -1,6 +1,7 @@
 package com.zcommcx.avatar.service;
 
 import com.zcommcx.avatar.ai.GeminiShowhostGenerator;
+import com.zcommcx.avatar.domain.ShowhostDiscount;
 import com.zcommcx.avatar.domain.ShowhostScript;
 import com.zcommcx.avatar.domain.ShowhostScriptRepository;
 import com.zcommcx.product.domain.Product;
@@ -29,6 +30,7 @@ public class ShowhostService {
     private final ProductService productService;
     private final ReviewService reviewService;
     private final GeminiShowhostGenerator generator;
+    private final ShowhostDiscountService discountService;
 
     // FitProfileService.getOrGenerate와 같은 이유로 클래스 레벨 readOnly=true를 여기서 덮어쓴다 —
     // 캐시 미스 시 save()까지 한 트랜잭션 안에서 처리해야 한다(self-invocation이라 별도
@@ -55,7 +57,8 @@ public class ShowhostService {
     public String answerQuestion(String productCode, String question) {
         Product product = productService.getByProductCode(productCode);
         String reviewSummary = reviewSummary(productCode);
-        return generator.answerQuestion(product, reviewSummary, question);
+        ShowhostDiscount discount = discountService.getSetting(productCode);
+        return generator.answerQuestion(product, reviewSummary, discount, question);
     }
 
     private ShowhostScript generateAndCache(String productCode) {

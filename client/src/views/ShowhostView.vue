@@ -42,7 +42,12 @@ onUnmounted(() => setBreadcrumbProductName(null))
         <h2>{{ product.name }}</h2>
       </header>
 
-      <ShowhostBroadcastPanel :product-code="product.productCode" />
+      <ShowhostBroadcastPanel
+        :product-code="product.productCode"
+        :product-id="product.id"
+        :price="product.price"
+        issue-offer
+      />
     </template>
   </div>
 </template>
