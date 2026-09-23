@@ -7,7 +7,8 @@ import java.util.Optional;
 
 public interface ReviewSummaryCacheRepository extends JpaRepository<ReviewSummaryCache, Long> {
 
-    Optional<ReviewSummaryCache> findByProductCodeAndQuery(String productCode, String query);
+    Optional<ReviewSummaryCache> findByProductCodeAndQueryAndAudience(
+            String productCode, String query, ReviewSummaryAudience audience);
 
     @Transactional
     void deleteByProductCode(String productCode);

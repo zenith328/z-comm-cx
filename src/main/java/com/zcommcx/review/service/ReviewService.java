@@ -1,5 +1,6 @@
 package com.zcommcx.review.service;
 
+import com.zcommcx.member.domain.Gender;
 import com.zcommcx.member.domain.Member;
 import com.zcommcx.member.domain.MemberRepository;
 import com.zcommcx.review.ai.GeneratedSyntheticReview;
@@ -15,6 +16,7 @@ import com.zcommcx.review.domain.ReviewSentiment;
 import com.zcommcx.review.domain.ReviewSortOption;
 import com.zcommcx.review.domain.ReviewSpecifications;
 import com.zcommcx.review.domain.ReviewStatus;
+import com.zcommcx.review.domain.ReviewSummaryAudience;
 import com.zcommcx.review.domain.ReviewSummaryCache;
 import com.zcommcx.review.domain.ReviewSummaryCacheRepository;
 import com.zcommcx.review.event.ReviewCreatedEvent;
@@ -151,28 +153,37 @@ public class ReviewService {
         return reviewRepository.countByProductCodeAndVisibleTrue(productCode);
     }
 
-    /**
-     * 상품별 리뷰 요약 결과를 캐시한다. 같은 상품에 같은 질문이 다시 들어오면(예: 상세페이지의
-     * "장점 요약" 같은 고정 예시 질문) Gemini를 다시 호출하지 않고 DB에 저장된 값을 반환하고,
-     * 처음 들어온 질문일 때만 AI를 호출해 결과를 저장해 둔다. 캐시는 리뷰가 추가되거나
-     * 공개여부/분류가 바뀌면({@link #invalidateSummaryCache}) 통째로 삭제된다.
-     */
+    /** 보는 고객을 특정하지 않는 일반 요약(AI 상담 채팅 등). */
     @Transactional
     public ReviewSummaryResult summarizeVisibleReviews(String productCode, String query) {
-        return reviewSummaryCacheRepository.findByProductCodeAndQuery(productCode, query)
-                .map(cache -> new ReviewSummaryResult(cache.getSummary(), cache.getReviewCount()))
-                .orElseGet(() -> summarizeAndCache(productCode, query));
+        return summarizeVisibleReviews(productCode, query, null);
     }
 
-    private ReviewSummaryResult summarizeAndCache(String productCode, String query) {
+    /**
+     * 상품별 리뷰 요약 결과를 캐시한다. 같은 상품에 같은 질문이 같은 대상(보는 고객의 성별,
+     * {@link ReviewSummaryAudience})으로 다시 들어오면(예: 상세페이지의 "장점 요약" 같은 고정 예시 질문)
+     * Gemini를 다시 호출하지 않고 DB에 저장된 값을 반환하고, 처음 들어온 조합일 때만 AI를 호출해
+     * 결과를 저장해 둔다. 캐시는 리뷰가 추가되거나 공개여부/분류가 바뀌면({@link #invalidateSummaryCache})
+     * 통째로 삭제된다.
+     */
+    @Transactional
+    public ReviewSummaryResult summarizeVisibleReviews(String productCode, String query, Gender viewerGender) {
+        ReviewSummaryAudience audience = ReviewSummaryAudience.from(viewerGender);
+        return reviewSummaryCacheRepository.findByProductCodeAndQueryAndAudience(productCode, query, audience)
+                .map(cache -> new ReviewSummaryResult(cache.getSummary(), cache.getReviewCount()))
+                .orElseGet(() -> summarizeAndCache(productCode, query, viewerGender, audience));
+    }
+
+    private ReviewSummaryResult summarizeAndCache(
+            String productCode, String query, Gender viewerGender, ReviewSummaryAudience audience) {
         List<Review> visibleReviews = findVisibleReviews(productCode);
-        ReviewSummaryResult result = reviewSummarizer.summarize(visibleReviews, query);
+        ReviewSummaryResult result = reviewSummarizer.summarize(visibleReviews, query, viewerGender);
         try {
             reviewSummaryCacheRepository.save(
-                    new ReviewSummaryCache(productCode, query, result.summary(), result.reviewCount()));
+                    new ReviewSummaryCache(productCode, query, audience, result.summary(), result.reviewCount()));
         } catch (DataIntegrityViolationException e) {
             // 동시에 들어온 같은 질문이 먼저 캐시를 저장한 경우 — 이번 요청 결과는 그대로 반환한다.
-            log.debug("요약 캐시 저장 경합 발생. productCode={}, query={}", productCode, query);
+            log.debug("요약 캐시 저장 경합 발생. productCode={}, query={}, audience={}", productCode, query, audience);
         }
         return result;
     }

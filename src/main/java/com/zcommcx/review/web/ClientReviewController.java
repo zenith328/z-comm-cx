@@ -51,7 +51,8 @@ public class ClientReviewController {
     @PostMapping("/summary")
     public ReviewSummaryResponse summarizeReviews(
             @PathVariable String productCode, @Valid @RequestBody ReviewSummaryRequest request) {
-        return ReviewSummaryResponse.from(reviewService.summarizeVisibleReviews(productCode, request.query()));
+        return ReviewSummaryResponse.from(reviewService.summarizeVisibleReviews(
+                productCode, request.query(), request.viewerGender()));
     }
 
     @GetMapping("/fit-profile")

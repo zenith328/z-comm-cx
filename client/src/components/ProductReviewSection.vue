@@ -10,6 +10,7 @@ import { CLASSIFICATION_LABELS, CLASSIFICATION_OPTIONS } from '../constants/revi
 import { session } from '../stores/session'
 import type { ClientReview, ReviewClassification, ReviewSentiment, ReviewSortOption } from '../types/review'
 import { isQuotaExceededError } from '../utils/apiError'
+import type { Gender } from '../api/cs-types'
 
 type TypeFilter = 'ALL' | 'TEXT' | 'IMAGE'
 type ClassificationFilter = 'ALL' | ReviewClassification
@@ -118,6 +119,8 @@ function onDropdownSelect(event: Event) {
 const query = ref('')
 const summary = ref('')
 const summaryReviewCount = ref<number | null>(null)
+// 요약을 요청한 시점의 로그인 회원 성별 — 요약이 "누구 기준"인지 결과 옆에 보여준다(null이면 일반 요약).
+const summaryViewerGender = ref<Gender | null>(null)
 const summarizing = ref(false)
 const summaryError = ref('')
 
@@ -153,6 +156,7 @@ function goToPage(target: number) {
 async function loadReviews() {
   summary.value = ''
   summaryReviewCount.value = null
+  summaryViewerGender.value = null
   query.value = ''
   typeFilter.value = 'ALL'
   classificationFilter.value = 'ALL'
@@ -177,9 +181,11 @@ async function requestSummary() {
   summarizing.value = true
   summaryError.value = ''
   try {
-    const result = await summarizeReviews(props.productCode, query.value.trim())
+    const viewerGender = session.current?.gender ?? null
+    const result = await summarizeReviews(props.productCode, query.value.trim(), viewerGender)
     summary.value = result.summary
     summaryReviewCount.value = result.reviewCount
+    summaryViewerGender.value = viewerGender
   } catch (error) {
     console.error(error)
     summaryError.value = isQuotaExceededError(error)
@@ -235,7 +241,11 @@ watch(() => props.productCode, loadReviews, { immediate: true })
       <p v-if="summaryError" class="error">{{ summaryError }}</p>
       <p v-else-if="summary" class="summary-result">
         {{ summary }}
-        <span class="summary-meta">(참고한 리뷰 {{ summaryReviewCount }}건)</span>
+        <span class="summary-meta"
+          >(참고한 리뷰 {{ summaryReviewCount }}건<template v-if="summaryViewerGender"
+            > · {{ summaryViewerGender === 'MALE' ? '남성' : '여성' }} 고객 기준</template
+          >)</span
+        >
       </p>
     </section>
 
