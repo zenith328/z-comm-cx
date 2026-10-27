@@ -41,8 +41,10 @@ public class ReviewSummaryCache {
     private String query;
 
     // 기존 행(성별 구분 도입 전 캐시)이 있는 DB에 ddl-auto로 컬럼을 추가할 수 있도록 DB 기본값을 둔다.
+    // length는 columnDefinition의 varchar(10)과 맞춰야 한다. 안 맞추면 Hibernate가 기본 길이(255)와
+    // 실제 길이(10)가 다르다고 보고 기동할 때마다 columnDefinition을 그대로 넣은 잘못된 ALTER를 시도한다.
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, columnDefinition = "varchar(10) not null default 'ALL'")
+    @Column(nullable = false, length = 10, columnDefinition = "varchar(10) not null default 'ALL'")
     private ReviewSummaryAudience audience;
 
     @Column(nullable = false, columnDefinition = "text")
